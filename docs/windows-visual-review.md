@@ -28,17 +28,33 @@ runner. Playwright opens it and tests the default title bar, project registratio
 ticket editing, customization panel, pinning and ordering, 15 pinned commands,
 the command palette, and saved preferences after restarting the application.
 
+The test imports committed fixtures into **two separate temporary projects**:
+`tests/fixtures/sample-tickets.jsonl` (16 tickets) and
+`tests/fixtures/nested-tickets.json` (16 tickets in three milestone groups).
+It checks both imports, then captures populated navigator, Ticket Fields and JSON
+editor views. These are the real source-format import paths, not mocked tickets
+rendered directly into the DOM.
+
 Every captured state includes:
 
-- **renderer.png**: Electron renderer screenshot (HTML/CSS).
-- **window.png**: screen capture of the native HWND, including Windows caption controls.
-- **report.txt**: layout assertions and diagnostic output.
+- **`*-renderer.png`**: Playwright screenshot of the Chromium renderer.
+- **`*-window.png`**: Microsoft WinApp CLI's window-targeted Windows Graphics
+  Capture image (the app's HWND, including native caption controls).
+- **`report.txt`**: geometry assertions and diagnostic output.
+
+The Windows workflow installs WinApp CLI via `microsoft/setup-WinAppCli`.
+Capture uses `winapp ui screenshot -w <HWND> --output <PNG>`, **not**
+`--capture-screen`. Unlike the previous PowerShell `CopyFromScreen` method,
+WGC captures the actual DWM-composited window surface. The desktop and other
+windows behind the app are excluded. If window-only capture fails, the test
+fails rather than silently falling back to a desktop screenshot.
 
 If a test fails, the artifact also includes **failure-renderer.png** when
 possible. Artifacts upload even if the test fails.
 
-The test checks title-bar height (42px), caption reservation (140px), and
-overlap between pinned icons and caption controls. It captures screenshots for
+The test checks title-bar height (42px), caption reservation (140px),
+settings-control borders and placement immediately left of native caption
+buttons, icon-only branding, typography sizing, and ticket population. It captures screenshots for
 manual visual inspection; **it does not perform pixel-baseline comparisons**.
 
 The test uses a temporary project directory and isolated Electron user-data
@@ -49,6 +65,7 @@ profile. It does not change the user's real projects.
 Use PowerShell in the repository root:
 
     npm install
+    winget install Microsoft.winappcli --source winget
     npm run build
     npm run test:visual:windows
 
