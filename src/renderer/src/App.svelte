@@ -475,7 +475,7 @@
           {#if !validateTicket(draft).valid}
             <div class="validation-warning">
               <strong>Validation issues</strong>
-              {#each validateTicket(draft).errors as issue}
+              {#each validateTicket(draft).errors as issue (issue)}
                 <p>{issue}</p>
               {/each}
             </div>
