@@ -84,3 +84,5 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
 .batch-editor label,.export-controls label{color:#aab9c9}
 .batch-editor input,.batch-editor select,.export-controls select{padding:6px;font-size:11px;background:#252b33;color:#e5edf8;border:1px solid #465362;border-radius:3px;min-width:0}
 .export-controls{padding-bottom:12px}
+
+.revision-actions{display:flex;align-items:center;gap:5px}

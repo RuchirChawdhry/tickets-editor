@@ -2,7 +2,8 @@ import { contextBridge, ipcRenderer } from 'electron'
 import type { BatchOperation } from '../shared/batch-operations'
 import type {
   ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus, RevisionRecord, TicketExportFormat,
-  ProjectRecord, TicketObject, TicketRecord, TicketsEditorBridge, WorkspaceSummary
+  ProjectRecord, TicketObject, TicketRecord, TicketsEditorBridge, WorkspaceSummary,
+  RevisionReference, RevisionSnapshot
 } from '../shared/contracts'
 
 const bridge: TicketsEditorBridge = {
@@ -43,6 +44,8 @@ const bridge: TicketsEditorBridge = {
     ipcRenderer.invoke('projects:accept-external', id, source) as Promise<boolean>,
   recoverFromSqlite: (id: string) => ipcRenderer.invoke('projects:recover-from-sqlite', id) as Promise<boolean>,
   repairProjectLink: (id: string) => ipcRenderer.invoke('projects:repair-link', id) as Promise<ProjectLinkStatus | null>,
+  getRevisionSnapshot: (id: string, reference: RevisionReference) =>
+    ipcRenderer.invoke('projects:revision-snapshot', id, reference) as Promise<RevisionSnapshot>,
   listProjectRevisions: (id: string) => ipcRenderer.invoke('projects:revisions', id) as Promise<RevisionRecord[]>,
   restoreProjectRevision: (id: string, revisionId: number) =>
     ipcRenderer.invoke('projects:restore-revision', id, revisionId) as Promise<boolean>,

@@ -31,7 +31,7 @@ npm run build
 
 ## Scope of the initial scaffold
 
-The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Advanced diff review, merge UI, CodeMirror, undo/redo and configurable templates are still planned.
+The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Read-only visual revision diffs are available. Automatic merge UI, CodeMirror, undo/redo and configurable templates are still planned.
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 
@@ -48,3 +48,7 @@ GitHub Actions uses only `.github/workflows/ci-workflows.yml` on the `ubuntu-sli
 5. Copy or save **compact JSON** (default), pretty JSON, or JSONL. Full-project JSON exports retain the original nested document hierarchy.
 
 When an external agent changes `.tickets`, the editor reports its state. The user explicitly chooses whether to import changed JSON, keep SQLite and back up external data, or repair a detached link. Recovery snapshots are kept in `<userData>/recovery/<project-uuid>/`. Detached file repair is never automatic.
+
+## Visual revision diffs
+
+Open **Project Settings → Revision history → Compare**. The read-only comparison viewer opens with the selected revision on the left and the current saved SQLite document on the right. Choose another revision on either side, inspect highlighted additions, deletions and changes, and use Previous/Next to navigate change groups. Unchanged lines are hidden except for nearby context; enable **Show unchanged lines** to view the entire document. Differences are computed on consistently pretty-printed JSON. This view never restores a revision or modifies project files.

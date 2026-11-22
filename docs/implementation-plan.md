@@ -31,7 +31,7 @@ Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit sha
 
 ### 5. Import/export/validation
 
-Current JSON/JSONL imports and compact/pretty/JSONL exports work. Finish duplicate-ID diagnostics, schema-aware validation summary, diff review and source-preserving export options. Preserve arbitrary custom properties.
+Current JSON/JSONL imports and compact/pretty/JSONL exports work. Finish duplicate-ID diagnostics, schema-aware validation summary, source-preserving export options. Read-only visual revision comparisons are implemented: revision-to-current and revision-to-revision, aligned JSON lines, colored changes and hunk navigation. Preserve arbitrary custom properties.
 
 ### 6. Cross-platform QA and release
 

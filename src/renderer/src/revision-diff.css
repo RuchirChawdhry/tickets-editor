@@ -1,0 +1,52 @@
+.revision-diff-overlay{
+  position:fixed;inset:0;z-index:70;background:rgba(9,13,21,.86);
+  display:flex;align-items:center;justify-content:center;padding:18px;
+  -webkit-app-region:no-drag
+}
+.revision-diff-dialog{
+  position:relative;display:flex;flex-direction:column;gap:0;overflow:hidden;
+  margin:0;padding:0;width:min(1530px,96vw);height:min(91vh,1080px);max-width:none;max-height:none;
+  color:#e7ecf4;background:#20252d;border:1px solid #617186;border-radius:9px;
+  box-shadow:0 20px 80px rgba(0,0,0,.65)
+}
+.revision-diff-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#292f38;border-bottom:1px solid #45505e}
+.revision-diff-header h2{font-size:18px;margin:0 0 5px}
+.revision-diff-header p{font-size:12px;color:#aab8c8;margin:0}
+.revision-close{background:transparent;border:0;color:#c6d0dc;font-size:26px;padding:2px 10px;cursor:pointer}
+.revision-diff-toolbar{display:flex;gap:14px;align-items:end;padding:12px 17px;background:#262d36;border-bottom:1px solid #3d4956}
+.revision-diff-selector{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+.revision-diff-selector label{font-size:11px;color:#aab8c8}
+.revision-diff-selector select{width:100%;background:#1d242c;color:#e5ecf5;border:1px solid #475463;border-radius:4px;padding:8px;font-size:12px}
+.revision-arrow{font-size:18px;color:#98adc3;padding-bottom:7px}
+.revision-diff-summary{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;font-size:11px;border-bottom:1px solid #46515d}
+.revision-stat{padding:5px 8px;border:1px solid #42505e;border-radius:4px;font-variant-numeric:tabular-nums}
+.revision-stat.added{color:#9ce2b7;background:#1c42312e}
+.revision-stat.removed{color:#efa8a6;background:#69303132}
+.revision-stat.changed{color:#ebd28f;background:#705d3036}
+.revision-stat.neutral{color:#9eafc2}
+.revision-grow{flex:1}
+.revision-showall{display:flex;align-items:center;gap:6px;color:#bbc9d8}
+.revision-showall input{accent-color:#6fa0da}
+.revision-diff-summary button,.revision-diff-footer button{padding:5px 9px;color:#dce6f1;background:#38424f;border:1px solid #596878;border-radius:4px;font-size:11px;cursor:pointer}
+.revision-diff-summary button:disabled{opacity:.4;cursor:default}
+.revision-position{color:#a9b9cb;min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
+.revision-diff-headings{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);border-bottom:1px solid #506072;background:#2c3540}
+.revision-diff-headings span{padding:9px 15px;font-size:12px;color:#c3d0df;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.revision-diff-headings span:first-child{border-right:1px solid #506072}
+.revision-diff-scroll{flex:1;min-height:0;overflow:auto;background:#1c2229;scrollbar-gutter:stable}
+.revision-diff-row{display:grid;grid-template-columns:minmax(380px,1fr) minmax(380px,1fr);min-width:760px;font:12px/1.65 Consolas,"Cascadia Code",monospace}
+.revision-diff-cell{display:grid;grid-template-columns:54px minmax(0,1fr);min-height:20px}
+.revision-diff-before{border-right:1px solid #414e5c}
+.revision-diff-cell code{padding:0 12px;white-space:pre;overflow:hidden;text-overflow:clip;font:inherit;color:#cbd8e6}
+.revision-line-number{padding:0 10px 0 3px;text-align:right;color:#6f8398;background:#212934;user-select:none;font-variant-numeric:tabular-nums;border-right:1px solid #364555}
+.revision-diff-changed .revision-diff-before{background:rgba(177,79,79,.24)}
+.revision-diff-changed .revision-diff-after{background:rgba(58,151,104,.24)}
+.revision-diff-removed .revision-diff-before{background:rgba(177,79,79,.29)}
+.revision-diff-added .revision-diff-after{background:rgba(58,151,104,.29)}
+.revision-diff-changed .revision-diff-before code,.revision-diff-removed .revision-diff-before code{color:#ffbfba}
+.revision-diff-changed .revision-diff-after code,.revision-diff-added .revision-diff-after code{color:#b8ebce}
+.revision-diff-gap{border-block:1px dashed #405163;min-width:760px;text-align:center;padding:7px;background:#2a333e;color:#94a8bd;font:11px/1.5 "Segoe UI",system-ui,sans-serif}
+.revision-diff-empty{padding:28px 20px;color:#bbc9d8;text-align:center;font-size:13px}
+.revision-diff-error{padding:18px;color:#ffb5b5;font-size:12px;overflow-wrap:anywhere}
+.revision-diff-footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:10px 17px;border-top:1px solid #46515d;color:#8c9cad;font-size:11px;background:#262d36}
+@media(max-width:850px){.revision-diff-dialog{width:99vw}.revision-diff-overlay{padding:4px}}

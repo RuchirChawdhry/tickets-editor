@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
   import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
@@ -25,6 +26,8 @@
   let linkMode: LinkMode = 'hardlink'
   let linkStatus: ProjectLinkStatus | null = null
   let revisions: RevisionRecord[] = []
+  let diffRevisionId = 0
+  let diffOpen = false
   let selectedTicketIds: string[] = []
   let selectionAnchor = ''
   let showBatchEditor = false
@@ -323,6 +326,11 @@
     projectPath = current.rootPath
     projectFormOpen = true
     void loadRevisions()
+  }
+
+  function openRevisionDiff(revisionId: number): void {
+    diffRevisionId = revisionId
+    diffOpen = true
   }
 
   async function loadRevisions(): Promise<void> {
@@ -641,7 +649,10 @@
                 {#each revisions.slice(0, 12) as revision (revision.revisionId)}
                   <div class="revision-item">
                     <span>#{revision.revisionId} · {revision.createdAt}</span>
-                    <button disabled={busy} onclick={() => void restoreRevision(revision.revisionId)}>Restore</button>
+                    <div class="revision-actions">
+                      <button onclick={() => openRevisionDiff(revision.revisionId)}>Compare</button>
+                      <button disabled={busy} onclick={() => void restoreRevision(revision.revisionId)}>Restore</button>
+                    </div>
                   </div>
                 {:else}
                   <p>No revisions available.</p>
@@ -658,6 +669,16 @@
         </div>
       </dialog>
     </div>
+  {/if}
+
+  {#if diffOpen}
+    <RevisionDiffDialog
+      {projectUuid}
+      projectName={project()?.name ?? 'Project'}
+      {revisions}
+      initialRevisionId={diffRevisionId}
+      close={() => { diffOpen = false }}
+    />
   {/if}
 
   <main class="workspace">

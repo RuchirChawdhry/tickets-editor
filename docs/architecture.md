@@ -35,7 +35,7 @@ The active SQLite database lives in Electron's userData path as tickets-editor.s
 
 Tickets can share the same agent-defined ID across different projects. A single project can temporarily have duplicate IDs while the user corrects invalid drafts; duplicates are validation issues, not silent data loss.
 
-**Implemented:** project registration, ticket CRUD, revision snapshots, AppData JSON updates, file-change notifications, explicit external import, conflict blocking, detached-link repair and batch ticket operations. **Not implemented:** FTS index, automatic three-way merge, rollback across SQLite/filesystem crash boundaries, full command palette, revision diff preview and CodeMirror.
+**Implemented:** project registration, ticket CRUD, revision snapshots, AppData JSON updates, file-change notifications, explicit external import, conflict blocking, detached-link repair and batch ticket operations. **Not implemented:** FTS index, automatic three-way merge, rollback across SQLite/filesystem crash boundaries, full command palette, automatic merge previews and CodeMirror.
 
 ## JSON documents
 
@@ -66,3 +66,7 @@ Menu items, title-bar pinned commands, keyboard shortcuts, ticket context menus,
 ## Platform coverage
 
 Node filesystem and SQLite operations must work on Windows, Linux and macOS. Native window-frame behavior is Windows-specific; use native platform decorations elsewhere. The project `.tickets` is linked to the app's per-user data directory, named AppData on Windows and resolved with Electron `app.getPath('userData')` on all supported platforms. GitHub CI currently runs **only on `ubuntu-slim`** without launching a GUI or packaging installers; this is not a claim of Windows/macOS runtime test coverage.
+
+## Revision diff viewer
+
+The visual revision diff is read-only. Snapshot reads are scoped to a registered project UUID and SQLite revision ID; `current` means the saved SQLite project document, not an unsaved editor draft or external file. Both snapshots are formatted as two-space-indented JSON for line-based comparison. The viewer aligns changed lines, annotates added/removed lines, collapses unchanged context and navigates change groups. The diff helper is pure and does not write to SQLite or project files.

@@ -14,7 +14,8 @@ import {
   setupProjectLink, syncProjectFile, importExternalProjectFile, repairProjectLink,
   recoverCanonicalFromSqlite, listProjectRevisions, restoreProjectRevision
 } from './project-links'
-import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat } from '../shared/contracts'
+import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat, RevisionReference } from '../shared/contracts'
+import { loadRevisionSnapshot } from './revision-snapshots'
 import type { BatchOperation } from '../shared/batch-operations'
 
 let database: WorkspaceDatabase | undefined
@@ -213,6 +214,8 @@ function registerHandlers(): void {
     const source = readFileSync(filePath, 'utf8')
     return mutateProject(db, id, () => replaceProjectDocument(db, id, source, format))
   })
+  ipcMain.handle('projects:revision-snapshot', (event, id: string, reference: RevisionReference) =>
+    loadRevisionSnapshot(authorized(event), id, reference))
   ipcMain.handle('projects:revisions', (event, id: string) =>
     listProjectRevisions(authorized(event), id))
   ipcMain.handle('projects:restore-revision', async (event, id: string, revisionId: number) => {

@@ -65,6 +65,13 @@ export interface ProjectLinkStatus {
   details: string
 }
 
+export type RevisionReference = number | 'current'
+
+export interface RevisionSnapshot {
+  reference: RevisionReference
+  json: string
+}
+
 export interface RevisionRecord {
   revisionId: number
   createdAt: string
@@ -95,6 +102,7 @@ export interface TicketsEditorBridge {
   recoverFromSqlite(projectUuid: string): Promise<boolean>
   repairProjectLink(projectUuid: string): Promise<ProjectLinkStatus | null>
   listProjectRevisions(projectUuid: string): Promise<RevisionRecord[]>
+  getRevisionSnapshot(projectUuid: string, reference: RevisionReference): Promise<RevisionSnapshot>
   restoreProjectRevision(projectUuid: string, revisionId: number): Promise<boolean>
   onProjectLinkChanged(callback: () => void): () => void
 }
