@@ -30,7 +30,7 @@ The application uses Electron, Svelte, TypeScript, and SQLite.
 
 ## Create or open a project
 
-1. Select **+** in the title bar.
+1. Select the **folder-plus icon** after the project tabs.
 2. Enter a project name.
 3. Select the project's directory.
 4. Select **Register project**.

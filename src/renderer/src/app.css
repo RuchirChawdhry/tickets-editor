@@ -339,3 +339,7 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
   font-size: 10px;
   color: #a8b8ca;
 }
+
+/* Distinct vector icons for project, ticket and customization actions. */
+.command-icon{width:18px;height:18px;display:inline-block;vertical-align:middle;flex:none}
+.titlebar-customize-symbol .command-icon{width:19px;height:19px}

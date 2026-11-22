@@ -3,6 +3,7 @@
   import JsonCodeEditor from './JsonCodeEditor.svelte'
   import CommandPalette from './CommandPalette.svelte'
   import TitlebarCustomize from './TitlebarCustomize.svelte'
+  import CommandIcon from './CommandIcon.svelte'
   import {
     DEFAULT_TITLEBAR_PINS, PIN_STORAGE_KEY, loadTitlebarPins, saveTitlebarPins,
     pinCommand, unpinCommand, shiftPinnedCommand, reorderPinnedCommands,
@@ -784,7 +785,7 @@
       {#each projects as p (p.projectUuid)}
         <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => executeCommand(`project.switch:${p.projectUuid}`)}>▣ {p.name}</button>
       {/each}
-      <button class="title-action" title="Register project" onclick={() => executeCommand('project.register')}>+</button>
+      <button class="title-action" title="Register project" aria-label="Register project" onclick={() => executeCommand('project.register')}><CommandIcon id="project.register" /></button>
     </div>
     <div class="drag-space"></div>
     <div class="title-actions">
@@ -815,7 +816,7 @@
               aria-label={command.title}
               disabled={!command.enabled}
               onclick={() => executeCommand(command.id)}
-            >{command.icon}</button>
+            ><CommandIcon id={command.id} fallback={command.icon} /></button>
           </span>
         {/each}
       </div>
@@ -829,7 +830,7 @@
         aria-expanded={titlebarCustomizeOpen}
         title="Pin or reorder title-bar commands"
         onclick={() => executeCommand('titlebar.customize')}
-      >+</button>
+      ><CommandIcon id="titlebar.customize" /></button>
     </div>
     <div class="caption-reserved"></div>
     {#if titlebarCustomizeOpen}

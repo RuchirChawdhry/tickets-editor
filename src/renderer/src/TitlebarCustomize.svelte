@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import CommandIcon from './CommandIcon.svelte';
   import type { Command, StaticCommandId } from './commands';
   import { customizableCommands, isPinnableCommandId } from './titlebar-pins';
 
@@ -58,7 +59,7 @@
   <div class="titlebar-customize-list">
     {#each customizableCommands(commands, pinned, query) as command (command.id)}
       <div class="titlebar-customize-item">
-        <span class="titlebar-customize-symbol" aria-hidden="true">{command.icon}</span>
+        <span class="titlebar-customize-symbol" aria-hidden="true"><CommandIcon id={command.id} fallback={command.icon} /></span>
         <span class="titlebar-customize-text">
           <strong>{command.title}</strong>
           <small>{command.description}</small>
