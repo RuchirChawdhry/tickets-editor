@@ -66,6 +66,8 @@
   })
 </script>
 
+<svelte:window onkeydown={event => { if (event.key === 'Escape') close() }} />
+
 <div class="revision-diff-overlay">
   <dialog open class="revision-diff-dialog" aria-label="Visual revision diff">
     <header class="revision-diff-header">
@@ -120,7 +122,7 @@
         <span>{label(beforeReference)}</span>
         <span>{label(afterReference)}</span>
       </div>
-      <div class="revision-diff-scroll" role="region" aria-label="Side-by-side JSON changes" tabindex="0">
+      <div class="revision-diff-scroll" role="region" aria-label="Side-by-side JSON changes">
         {#if comparison.hunks.length === 0}
           <p class="revision-diff-empty">These revisions contain identical JSON.</p>
         {:else}
