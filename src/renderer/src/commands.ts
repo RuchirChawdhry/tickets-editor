@@ -40,19 +40,48 @@ export type CommandId = StaticCommandId | `project.switch:${string}`;
 export type CommandHandler = () => void | Promise<void>;
 export type CommandHandlers = Record<StaticCommandId, CommandHandler>;
 
+/** Compact icons for the integrated title bar and command palette. */
+export const commandIcons: Record<StaticCommandId, string> = {
+  'palette.open': '≡',
+  'project.register': '⊞',
+  'project.settings': '⚙',
+  'project.search': '⌕',
+  'project.import': '⇩',
+  'project.copy': '⧉',
+  'project.export': '⇧',
+  'ticket.new': '+',
+  'ticket.save': '▣',
+  'ticket.delete': '×',
+  'ticket.format': '{ }',
+  'ticket.undo': '↶',
+  'ticket.redo': '↷',
+  'ticket.copySelection': '▤',
+  'ticket.exportSelection': '⇧',
+  'ticket.selectVisible': '☑',
+  'ticket.clearSelection': '□',
+  'ticket.batchEdit': '✎',
+  'ticket.duplicate': '⧉',
+  'ticket.moveUp': '↑',
+  'ticket.moveDown': '↓',
+  'ticket.deleteSelection': '×',
+  'project.compareRevision': '≠',
+  'project.verifyLink': '⌁',
+};
+
 export interface Command {
   id: CommandId;
   title: string;
   description: string;
   group: 'Workspace' | 'Tickets' | 'Editing' | 'Selection';
   keywords: string;
+  icon: string;
   shortcut?: string;
   shortcutAliases?: string[];
   enabled: boolean;
   run: CommandHandler;
 }
 
-type CommandSpec = Omit<Command, 'id' | 'enabled' | 'run'> & {
+type CommandSpec = Omit<Command, 'id' | 'icon' | 'enabled' | 'run'> & {
   id: StaticCommandId;
   available: (context: CommandContext) => boolean;
 };
@@ -224,6 +253,7 @@ export function createCommands(
 ): Command[] {
   const fixed = specs.map(({ available, ...spec }) => ({
     ...spec,
+    icon: commandIcons[spec.id],
     enabled: available(context),
     run: handlers[spec.id],
   }));
@@ -234,6 +264,7 @@ export function createCommands(
     description: 'Open this project from the project library',
     group: 'Workspace',
     keywords: `switch project tab open ${item.name}`,
+    icon: '▣',
     enabled: !context.busy && !!onSwitchProject,
     run: () => onSwitchProject?.(item.projectUuid),
   }));
