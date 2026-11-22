@@ -27,13 +27,13 @@
   const editorTheme = EditorView.theme({
     '&': {
       height: '100%',
-      fontSize: '12px',
+      fontSize: '13px',
       color: '#d3deec',
       backgroundColor: '#20252d'
     },
     '.cm-scroller': {
-      fontFamily: 'Consolas, "Cascadia Code", monospace',
-      lineHeight: '1.75',
+      fontFamily: '"Cascadia Code", Consolas, ui-monospace, monospace',
+      lineHeight: '1.55',
       overflow: 'auto'
     },
     '.cm-gutters': {

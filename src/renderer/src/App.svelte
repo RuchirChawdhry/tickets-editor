@@ -780,7 +780,7 @@
 
 <div class="app">
   <header class="titlebar">
-    <div class="brand"><span class="brand-icon">T</span>TicketsEditor</div>
+    <div class="brand" title="TicketsEditor" aria-label="TicketsEditor"><span class="brand-icon" aria-hidden="true">T</span></div>
     <div class="tabs">
       {#each projects as p (p.projectUuid)}
         <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => executeCommand(`project.switch:${p.projectUuid}`)}>▣ {p.name}</button>

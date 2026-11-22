@@ -40,6 +40,19 @@ Select a ticket in the left pane. Edit its fields in the center pane or its JSON
 
 Select **Save ticket** to save your changes.
 
+### Sample ticket projects
+
+The repository includes two synthetic ticket collections for visual testing and
+import/export verification:
+
+- `tests/fixtures/sample-tickets.jsonl` — 16 flat JSONL tickets.
+- `tests/fixtures/nested-tickets.json` — 16 tickets grouped into nested milestones.
+
+Register any project directory, then choose **Import JSON/JSONL** and select either
+fixture to populate the navigator, Ticket Fields pane and JSON editor.
+The manual Windows visual workflow imports both collections automatically into
+temporary sample projects. No synthetic tickets are written to your real projects.
+
 ### Ticket format
 
 A ticket can contain these fields:
@@ -68,7 +81,7 @@ remain visible but cannot run. Use **Ctrl+K** or **Cmd+K** to focus ticket searc
 
 ### Customize title-bar commands
 
-Select the **+** after the title-bar command icons, or run **Customize title bar** from the command palette, to open the customization panel.
+Select the **sliders/settings icon** directly left of the Windows minimize button, or run **Customize title bar** from the command palette, to open the customization panel.
 Search for a command, then select **Pin** or **Unpin**. Move a pinned command with
 the left and right controls, or drag its icon along the title bar. Select
 **Restore defaults** to return to the original five commands.
