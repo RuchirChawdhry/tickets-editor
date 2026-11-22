@@ -14,13 +14,13 @@ describe('desktop platform behavior', () => {
   it('shows native overlay controls on Windows and Linux', () => {
     for (const platform of ['win32', 'linux', 'freebsd']) {
       expect(windowChrome(platform)).toEqual({
-      titleBarStyle: 'hidden',
-      titleBarOverlay: {
-        color: '#20242a',
-        symbolColor: '#f3f4f6',
-        height: 42,
-      },
-    });
+        titleBarStyle: 'hidden',
+        titleBarOverlay: {
+          color: '#20242a',
+          symbolColor: '#f3f4f6',
+          height: 42,
+        },
+      });
     }
   });
 

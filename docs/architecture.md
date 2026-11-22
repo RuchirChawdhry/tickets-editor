@@ -6,7 +6,7 @@ TicketsEditor is a cross-platform, local-first, batch-oriented editor for fixing
 
 ### Presentation contract
 
-- On Windows, the window has an integrated, flat, Borumi-like title bar with document tabs, pinned command icons, a customization plus button, draggable empty space, and native Windows caption controls. Electron uses titleBarStyle hidden plus titleBarOverlay.
+- On Windows, macOS, and Linux, the window has the same integrated, flat, Borumi-like title bar with project tabs, pinned commands, and draggable empty space. Electron supplies platform-native caption controls within that bar.
 - Each **tab** represents an open project/document/collection; it does not represent an individual ticket.
 - Each project document has a ticket navigator, a humanized editable pane on the left, and a comfortably **pretty-printed** JSON editor on the right.
 - Navigator cards display **Ticket 1**, **Ticket 2**, etc. as the main heading. Display the actual ID in muted, smaller text at the bottom-right, e.g. **ID: <dll-004>**. Filtering must not renumber cards.
