@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
       - name: Ensure the release tag matches package.json
         shell: bash
         run: |
@@ -35,9 +36,8 @@ jobs:
             process.exit(1)
           }
           NODE
-      # No package-lock.json exists yet, so npm ci is not possible.
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -59,7 +59,7 @@ jobs:
           - runner: windows-latest
             platform: win
             arch: x64
-            targets: nsis
+            targets: nsis msi
           - runner: ubuntu-24.04
             platform: linux
             arch: x64
@@ -77,8 +77,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
       - name: Install dependencies on the target OS/CPU
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Build Electron and MCP bundles
         run: npm run build
       - name: Build installers (no implicit release uploads)
@@ -101,7 +102,7 @@ jobs:
           version = json.loads(Path('package.json').read_text())['version']
           platform = os.environ['TARGET_PLATFORM']
           arch = os.environ['TARGET_ARCH']
-          extensions = {'win': ['exe'], 'linux': ['AppImage', 'deb'], 'mac': ['dmg', 'zip']}
+          extensions = {'win': ['exe', 'msi'], 'linux': ['AppImage', 'deb'], 'mac': ['dmg', 'zip']}
           for extension in extensions[platform]:
               artifact = Path('dist') / f'TicketsEditor-{version}-{platform}-{arch}.{extension}'
               if not artifact.is_file() or artifact.stat().st_size == 0:
@@ -114,6 +115,7 @@ jobs:
           name: tickets-editor-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             dist/*.exe
+            dist/*.msi
             dist/*.AppImage
             dist/*.deb
             dist/*.dmg
@@ -147,7 +149,7 @@ jobs:
           expected = {
               f'TicketsEditor-{version}-{platform}-{arch}.{extension}'
               for platform, arch, extensions in [
-                  ('win', 'x64', ['exe']),
+                  ('win', 'x64', ['exe', 'msi']),
                   ('linux', 'x64', ['AppImage', 'deb']),
                   ('mac', 'x64', ['dmg', 'zip']),
                   ('mac', 'arm64', ['dmg', 'zip']),

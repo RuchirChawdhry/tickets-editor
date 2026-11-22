@@ -22,7 +22,7 @@ Install [Node.js](https://nodejs.org/) 24 or later and npm.
 ```sh
 git clone https://github.com/RuchirChawdhry/tickets-editor.git
 cd tickets-editor
-npm install
+npm ci
 npm run dev
 ```
 
@@ -146,6 +146,7 @@ See [MCP setup and tools](docs/mcp.md) for client configuration and the tool lis
 | `npm test` | Run unit tests |
 | `npm run format` | Format source files with Prettier |
 | `npm run build` | Build the Electron application and MCP server |
+| `npm run dist:win` | Build NSIS `.exe` and MSI `.msi` installers on Windows |
 
 GitHub Actions runs source checks on pushes and pull requests. A separate **tagged release workflow** builds native packages on Windows, Ubuntu and macOS, then publishes a GitHub Release only when every build succeeds.
 
@@ -168,16 +169,16 @@ The workflow at [`.github/workflows/release.yml`](.github/workflows/release.yml)
 
 | Platform | Architecture | Packages |
 | --- | --- | --- |
-| Windows | x64 | NSIS `.exe` |
+| Windows | x64 | NSIS `.exe` and native Windows Installer `.msi` |
 | Ubuntu / Debian | x64 | `.AppImage` and `.deb` |
 | macOS | Intel x64 | `.dmg` and `.zip` |
 | macOS | Apple Silicon arm64 | `.dmg` and `.zip` |
 
-Each runner installs and builds its own native dependencies, including SQLite. All seven packages use unique platform/architecture filenames. GitHub Actions assembles the packages, checks that none are missing, creates `SHA256SUMS.txt`, and attaches everything to the GitHub Release with automatically generated release notes.
+Each runner installs and builds its own native dependencies, including SQLite. All eight packages use unique platform/architecture filenames. GitHub Actions assembles the packages, checks that none are missing, creates `SHA256SUMS.txt`, and attaches everything to the GitHub Release with automatically generated release notes.
 
-**Signing:** These builds are currently **unsigned** and macOS builds are **not notarized**. Windows SmartScreen and macOS Gatekeeper may warn or block normal installation. Configure signing and Apple notarization before distributing to general users.
+**Signing:** Both NSIS and MSI builds are currently **unsigned** and macOS builds are **not notarized**. Windows SmartScreen and macOS Gatekeeper may warn or block normal installation. Configure signing and Apple notarization before distributing to general users.
 
-The repository does not currently contain a `package-lock.json`, so CI uses `npm install`; commit a lockfile and switch to `npm ci` for fully reproducible dependency installation. The ordinary CI workflow does not test packaged apps, and the Windows GUI screenshot workflow remains manual.
+The repository commits `package-lock.json`. All CI workflows install the pinned dependency tree with `npm ci --no-audit --no-fund` on their native operating system. When dependencies change, regenerate and commit the lockfile with `npm install` before pushing. The ordinary CI workflow does not test packaged apps, and the Windows GUI screenshot workflow remains manual.
 
 ## More information
 
