@@ -52,7 +52,9 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
-      - name: Unit tests
+      - name: Rebuild native SQLite dependency for Node.js unit tests
+        run: npm rebuild better-sqlite3 --no-audit --no-fund
+      - name: Unit tests and SQLite round trips
         run: npm test
       - name: Build bundles
         run: npm run build
