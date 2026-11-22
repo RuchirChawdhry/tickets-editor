@@ -24,7 +24,8 @@
     "build:mcp": "esbuild src/mcp/server.ts --bundle --platform=node --format=esm --target=node24 --outfile=out/mcp/server.mjs --external:better-sqlite3",
     "mcp": "npm run build && electron . --mcp",
     "lint:fast": "oxlint .",
-    "lint:all": "npm run lint:fast && npm run lint"
+    "lint:all": "npm run lint:fast && npm run lint",
+    "test:visual:windows": "node --test tests/visual/windows-titlebar.test.cjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.0.0",
@@ -57,6 +58,7 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^8.3.8",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "playwright": "1.65.1"
   }
 }

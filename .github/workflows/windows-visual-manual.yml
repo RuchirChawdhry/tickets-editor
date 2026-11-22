@@ -1,0 +1,42 @@
+name: Windows visual review (manual)
+
+# Intentionally manual-only. No push, pull_request, or schedule triggers.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-visual:
+    name: Electron screenshots (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Build Electron app
+        run: npm run build
+
+      - name: Capture and check Windows GUI
+        run: npm run test:visual:windows
+        env:
+          CI: 'true'
+
+      - name: Upload Windows screenshots and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tickets-editor-windows-visual-${{ github.run_number }}
+          path: artifacts/windows-visual/
+          if-no-files-found: warn
+          retention-days: 14
