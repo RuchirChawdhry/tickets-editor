@@ -3,6 +3,7 @@
   import { APP_THEME_KEY, loadTheme, saveTheme } from './app-theme'
   import type { AppTheme } from './app-theme'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
+  import DependencyTags from './DependencyTags.svelte'
   import CommandPalette from './CommandPalette.svelte'
   import TitlebarCustomize from './TitlebarCustomize.svelte'
   import CommandIcon from './CommandIcon.svelte'
@@ -1218,11 +1219,19 @@
               <h3>{field === 'success_criteria' ? 'Success Criteria' : field === 'deps' ? 'Dependencies' : field === 'work' ? 'Work' : 'Tests'}</h3>
               {#if fieldView.kind === 'scalar'}
                 <button disabled={!!parseError} title="Convert this string to an editable list" onclick={() => convertToList(field)}>Convert to list</button>
-              {:else if fieldView.kind === 'list' || fieldView.kind === 'missing'}
+              {:else if field !== 'deps' && (fieldView.kind === 'list' || fieldView.kind === 'missing')}
                 <button disabled={!!parseError} onclick={() => appendItem(field)}>+ Add</button>
               {/if}
             </div>
-            {#if fieldView.kind === 'scalar'}
+            {#if field === 'deps' && (fieldView.kind === 'list' || fieldView.kind === 'missing')}
+              {#key editorSession}
+                <DependencyTags
+                  dependencies={fieldView.kind === 'list' ? fieldView.values : []}
+                  disabled={!!parseError}
+                  onChange={(values) => changeDraft({ ...draft, deps: values })}
+                />
+              {/key}
+            {:else if fieldView.kind === 'scalar'}
               <div class="list-row">
                 <textarea rows="2" aria-label={field + ' text'} disabled={!!parseError} value={fieldView.value} oninput={e => changeScalar(field, e.currentTarget.value)}></textarea>
               </div>

@@ -7,6 +7,7 @@ import { openWorkspaceDatabase } from './database'
 import type { WorkspaceDatabase } from './database'
 import { getProjectDocument, listTickets, registerProject, replaceProjectDocument, updateTicket } from './project-store'
 import { editTicketListItem, editTicketScalar, readTicketField } from '../shared/ticket-fields'
+import { mergeDependencyTags, removeDependencyTag, tokenizeDependencies } from '../shared/dependency-tags'
 import { collectTicketLocations } from '../shared/ticket-source'
 import { locateNode, replaceNode } from '../shared/document-mutations'
 import type { TicketObject } from '../shared/contracts'
@@ -118,9 +119,11 @@ describe('real SQLite import/edit/save/reopen regression', () => {
 
     const selected = records.find(x => x.ticketId === 'avm-089')!
     const edited = editTicketScalar(selected.payload, 'work', 'Ship signed installer')
-    updateTicket(db, projectUuid, selected.ticketUuid, edited)
+    const parsed = tokenizeDependencies('avm-084,')
+    const withDependency = { ...edited, deps: mergeDependencyTags(edited.deps as string[], parsed.tokens) }
+    updateTicket(db, projectUuid, selected.ticketUuid, withDependency)
     const expected = structuredClone(payloads)
-    expected[88] = edited
+    expected[88] = withDependency
 
     db.close()
     const reopened = openWorkspaceDatabase(databasePath)
@@ -129,5 +132,9 @@ describe('real SQLite import/edit/save/reopen regression', () => {
       projectUuid, sourceFormat: 'jsonl', document: expected
     })
     expect(listTickets(reopened, projectUuid).map(x => x.payload)).toEqual(expected)
+    const persisted = listTickets(reopened, projectUuid)[88].payload
+    expect(persisted.deps).toEqual(['avm-001', 'avm-084'])
+    expect({ ...persisted, deps: removeDependencyTag(persisted.deps as string[], 1) })
+      .toEqual(edited)
   })
 })

@@ -58,6 +58,36 @@ input:focus,textarea:focus{border-color:#719acc}
 .section-header h3{font-size:var(--type-base);font-weight:600;margin:0}.list-row{display:flex;gap:7px;align-items:flex-start}
 .list-row textarea{flex:1;resize:vertical;min-width:0;font-size:var(--type-sm)}
 .field-warning{font-size:var(--type-sm);color:#dbad73;margin:2px 0 6px;line-height:1.45}
+
+/* Compact dependency pills share one input surface instead of textarea rows. */
+.dependency-entry{
+  display:flex;align-items:center;align-content:flex-start;flex-wrap:wrap;gap:6px;
+  min-height:43px;padding:6px 8px;border:1px solid #424b56;border-radius:5px;
+  background:#252b33;transition:border-color .12s ease
+}
+.dependency-entry:focus-within{border-color:#719acc}
+.dependency-chip{
+  display:inline-flex;align-items:center;max-width:100%;min-height:26px;
+  padding:1px 3px 1px 10px;gap:5px;border:1px solid #4e6b88;
+  border-radius:999px;background:#334b65;color:#e4f0ff;
+  font-size:var(--type-sm);line-height:1.4
+}
+.dependency-chip-text{overflow-wrap:anywhere}
+.dependency-chip-remove{
+  display:grid;place-items:center;flex:0 0 20px;width:20px;height:20px;
+  padding:0;border:0;border-radius:50%;background:transparent;color:#bad1e9;
+  font-size:17px;line-height:1
+}
+.dependency-chip-remove:hover:not(:disabled){background:#ffffff24;color:#fff}
+.dependency-chip-remove:focus-visible{outline:2px solid #9ac5f4;outline-offset:1px}
+.dependency-entry .dependency-entry-input{
+  flex:1 1 130px;min-width:95px;max-width:100%;height:27px;
+  margin:0;padding:3px 5px;border:0;outline:0;border-radius:2px;
+  box-shadow:none;background:transparent;color:inherit;font-size:var(--type-sm)
+}
+.dependency-entry .dependency-entry-input:focus{border:0;outline:0}
+.dependency-entry .dependency-entry-input::placeholder{color:#9baabd;opacity:1}
+.dependency-entry-hint{margin:-3px 0 2px;color:var(--text-muted);font-size:var(--type-xs);line-height:1.35}
 .list-row span{font-size:var(--type-sm);color:#8996a6;min-width:20px;padding-top:8px}
 .list-row button{background:transparent;border:0;color:#acbac9;font-size:20px}
 .editor-controls{display:flex;gap:8px;margin-top:11px}

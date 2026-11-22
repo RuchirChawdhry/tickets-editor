@@ -90,6 +90,24 @@
 :root[data-theme='light'] .ticket-task { color: #405164; }
 :root[data-theme='light'] .list-row span,
 :root[data-theme='light'] .list-row button { color: #566579; }
+:root[data-theme='light'] .dependency-entry {
+  background:#ffffff;
+  border-color:#c6d0da;
+}
+:root[data-theme='light'] .dependency-entry:focus-within{border-color:#397dbf}
+:root[data-theme='light'] .dependency-chip{
+  color:#244868;background:#e4f0fa;border-color:#b4d0e8;
+}
+:root[data-theme='light'] .dependency-chip-remove{color:#507393}
+:root[data-theme='light'] .dependency-chip-remove:hover:not(:disabled){
+  background:#c4dbf0;color:#163f61
+}
+:root[data-theme='light'] .dependency-entry .dependency-entry-input{
+  background:transparent;border:0;color:#243142
+}
+:root[data-theme='light'] .dependency-entry .dependency-entry-input::placeholder{
+  color:#758495
+}
 :root[data-theme='light'] .welcome p { color: #5c6c7c; }
 :root[data-theme='light'] .json-code {
   background: #ffffff;
