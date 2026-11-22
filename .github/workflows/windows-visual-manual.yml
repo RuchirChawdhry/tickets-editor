@@ -1,8 +1,14 @@
 name: Windows visual review (manual)
 
-# Intentionally manual-only. No push, pull_request, or schedule triggers.
+# Manual dispatch or an explicitly created visual-review ref only.
+# Ordinary main pushes and pull requests never trigger this workflow.
 on:
   workflow_dispatch:
+  push:
+    tags:
+      - 'windows-visual-*'
+    branches:
+      - 'windows-visual-*'
 
 permissions:
   contents: read
