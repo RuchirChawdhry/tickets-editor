@@ -794,6 +794,8 @@
         )) as command (command.id)}
           <span
             class="title-pin-slot"
+            role="group"
+            aria-label={'Pinned ' + command.title + '; drag to reorder'}
             class:drop-target={dropTargetPinId === command.id}
             draggable="true"
             ondragstart={(event) => onPinDragStart(event, command.id as StaticCommandId)}
