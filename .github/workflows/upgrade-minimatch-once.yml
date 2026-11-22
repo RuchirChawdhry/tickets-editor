@@ -1,0 +1,78 @@
+name: Upgrade transitive minimatch (one-shot)
+
+# This workflow resolves and verifies the real npm lockfile on a hosted runner.
+# It is removed from main after the upgrade is committed.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    if: "github.repository == 'RuchirChawdhry/tickets-editor' && github.event.head_commit.message == 'ci: upgrade minimatch transitive copies'"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Upgrade affected 9.x and 10.x dependency branches to minimatch 11.0.9
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = 'package.json'
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'))
+          pkg.overrides = {
+            ...(pkg.overrides || {}),
+            'app-builder-lib': { minimatch: '11.0.9' },
+            '@electron/universal': { minimatch: '11.0.9' }
+          }
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n')
+          NODE
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify every affected minimatch is patched
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'))
+          const bad = Object.entries(lock.packages)
+            .filter(([p, v]) => p.endsWith('/minimatch') && /^([7-9]|10)\./.test(v.version))
+            .map(([p, v]) => [p, v.version])
+          if (bad.length) throw Error('Unpatched modern minimatch copies: ' + JSON.stringify(bad))
+          for (const name of ['node_modules/minimatch','node_modules/@electron/universal/node_modules/minimatch']) {
+            const version = lock.packages[name]?.version
+            // npm deduplication can relocate the second copy.
+            if (name === 'node_modules/minimatch' && version !== '11.0.9') {
+              throw Error('Expected root minimatch 11.0.9, found ' + version)
+            }
+          }
+          console.log('Resolved minimatch copies:',
+            Object.entries(lock.packages)
+              .filter(([path]) => path.endsWith('/minimatch'))
+              .map(([path, p]) => path + '@' + p.version).join('\n'))
+          NODE
+      - name: Install and validate frozen dependency tree
+        run: npm ci --no-audit --no-fund
+      - name: Typecheck, lint, and test
+        shell: bash
+        run: |
+          npm run typecheck
+          npm run lint
+          npm rebuild better-sqlite3 --no-audit --no-fund
+          npm test
+          npm run build
+      - name: Commit resolved manifests
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package.json package-lock.json
+          git diff --cached --exit-code && { echo 'No changes required'; exit 0; }
+          git commit -m 'build(deps): upgrade minimatch 9.x/10.x branches to 11.0.9'
+          git push origin HEAD:main
