@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
+  import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
 
   let projects: ProjectRecord[] = []
   let tickets: TicketRecord[] = []
@@ -24,6 +25,16 @@
   let linkMode: LinkMode = 'hardlink'
   let linkStatus: ProjectLinkStatus | null = null
   let revisions: RevisionRecord[] = []
+  let selectedTicketIds: string[] = []
+  let selectionAnchor = ''
+  let showBatchEditor = false
+  let batchKind: 'append' | 'remove' | 'replace' = 'append'
+  let batchField: BatchArrayField = 'deps'
+  let batchTextField: BatchTextField = 'all'
+  let batchValue = ''
+  let findText = ''
+  let replaceText = ''
+  let exportFormat: 'compact' | 'pretty' | 'jsonl' = 'compact'
 
   function project(): ProjectRecord | undefined {
     return projects.find(item => item.projectUuid === projectUuid)
@@ -94,6 +105,8 @@
   function openTicket(item: TicketRecord): void {
     if (dirty && !window.confirm('Discard unsaved changes to this ticket?')) return
     ticketUuid = item.ticketUuid
+    selectedTicketIds = [item.ticketUuid]
+    selectionAnchor = item.ticketUuid
     draft = structuredClone(item.payload)
     rawJson = JSON.stringify(draft, null, 2)
     parseError = ''
@@ -103,10 +116,143 @@
 
   function clearTicket(): void {
     ticketUuid = ''
+    selectedTicketIds = []
     draft = {}
     rawJson = ''
     dirty = false
     parseError = ''
+  }
+
+  function selectTicket(event: MouseEvent, item: TicketRecord): void {
+    const visible = visibleTickets()
+    if (event.shiftKey && selectionAnchor) {
+      const first = visible.findIndex(entry => entry.ticketUuid === selectionAnchor)
+      const last = visible.findIndex(entry => entry.ticketUuid === item.ticketUuid)
+      if (first >= 0 && last >= 0) {
+        selectedTicketIds = Array.from(new Set([
+          ...selectedTicketIds,
+          ...visible.slice(Math.min(first, last), Math.max(first, last) + 1).map(entry => entry.ticketUuid)
+        ]))
+        return
+      }
+    }
+    if (event.ctrlKey || event.metaKey) {
+      selectedTicketIds = selectedTicketIds.includes(item.ticketUuid)
+        ? selectedTicketIds.filter(id => id !== item.ticketUuid)
+        : [...selectedTicketIds, item.ticketUuid]
+      selectionAnchor = item.ticketUuid
+      return
+    }
+    openTicket(item)
+  }
+
+  function selectVisibleTickets(): void {
+    selectedTicketIds = visibleTickets().map(item => item.ticketUuid)
+    selectionAnchor = selectedTicketIds.at(-1) ?? ''
+  }
+
+  async function applyBatchEdit(): Promise<void> {
+    if (!projectUuid || !selectedTicketIds.length || busy) return
+    if (dirty && !window.confirm('Discard unsaved edits before batch operation?')) return
+    const operation: BatchOperation = batchKind === 'replace'
+      ? { kind: 'replace', field: batchTextField, find: findText, replacement: replaceText }
+      : { kind: batchKind, field: batchField, value: batchValue }
+    busy = true
+    try {
+      const count = await window.ticketsEditor.batchEditTickets(projectUuid, selectedTicketIds, operation)
+      dirty = false
+      await reload(ticketUuid)
+      message = 'Updated ' + count + ' tickets in one operation'
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function duplicateSelection(): Promise<void> {
+    if (!projectUuid || !selectedTicketIds.length || busy) return
+    if (dirty && !window.confirm('Discard unsaved edits before duplication?')) return
+    busy = true
+    try {
+      const count = await window.ticketsEditor.duplicateTickets(projectUuid, selectedTicketIds)
+      dirty = false
+      await reload(ticketUuid)
+      message = 'Duplicated ' + count + ' tickets with new IDs'
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function deleteSelection(): Promise<void> {
+    if (!projectUuid || !selectedTicketIds.length || busy) return
+    const count = selectedTicketIds.length
+    if (!window.confirm('Delete ' + count + ' selected tickets? This creates a SQLite revision first.')) return
+    busy = true
+    try {
+      await window.ticketsEditor.deleteSelectedTickets(projectUuid, selectedTicketIds)
+      dirty = false
+      selectedTicketIds = []
+      ticketUuid = ''
+      await reload()
+      message = 'Deleted ' + count + ' tickets'
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function saveExport(scope: 'selection' | 'project'): Promise<void> {
+    if (!projectUuid) return
+    try {
+      const path = await window.ticketsEditor.exportTickets(projectUuid, scope, selectedTicketIds, exportFormat)
+      if (path) {
+        message = 'Exported tickets to ' + path
+        error = ''
+      }
+    } catch (cause) {
+      showError(cause)
+    }
+  }
+
+  async function moveSelection(direction: 'up' | 'down'): Promise<void> {
+    if (!projectUuid || !selectedTicketIds.length || busy) return
+    if (dirty && !window.confirm('Discard unsaved edits before moving tickets?')) return
+    busy = true
+    try {
+      await window.ticketsEditor.moveTickets(projectUuid, selectedTicketIds, direction)
+      dirty = false
+      await reload(ticketUuid)
+      message = 'Moved selected tickets ' + direction
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function copyTickets(scope: 'selection' | 'project'): Promise<void> {
+    if (!projectUuid) return
+    try {
+      const value = scope === 'selection'
+        ? tickets.filter(item => selectedTicketIds.includes(item.ticketUuid)).map(item => item.payload)
+        : (await window.ticketsEditor.getProjectDocument(projectUuid)).document
+      const contents = exportFormat === 'jsonl'
+        ? (Array.isArray(value) ? value : [value]).map(row => JSON.stringify(row)).join('\n')
+        : JSON.stringify(value, null, exportFormat === 'pretty' ? 2 : undefined)
+      await navigator.clipboard.writeText(contents)
+      message = 'Copied ' + (scope === 'selection' ? selectedTicketIds.length + ' selected tickets' : 'full project document')
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    }
   }
 
   function showError(cause: unknown): void {
@@ -126,10 +272,12 @@
     linkStatus = await window.ticketsEditor.getProjectLinkStatus(projectUuid)
     if (linkStatus.mode) linkMode = linkStatus.mode
     tickets = await window.ticketsEditor.listTickets(projectUuid)
+    const preservedSelection = selectedTicketIds.filter(id => tickets.some(item => item.ticketUuid === id))
     const next = tickets.find(item => item.ticketUuid === preferredTicketUuid) ??
       tickets.find(item => item.ticketUuid === ticketUuid) ?? tickets[0]
     clearTicket()
     if (next) openTicket(next)
+    if (preservedSelection.length) selectedTicketIds = preservedSelection
   }
 
   async function selectProject(id: string): Promise<void> {
@@ -514,16 +662,74 @@
 
   <main class="workspace">
     <aside class="navigator">
-      <div class="panel-heading">TICKETS <span>{tickets.length}</span></div>
+      <div class="panel-heading">TICKETS <span>{selectedTicketIds.length} selected / {tickets.length}</span></div>
       {#if projectUuid}
         <input class="search" id="ticket-search" bind:value={search} placeholder="Search tickets…" aria-label="Search tickets" />
         <div class="navigator-controls">
           <button onclick={() => void createTicket()} disabled={busy}>+ New</button>
           <button onclick={() => void importTickets()} disabled={busy}>Import JSON/JSONL</button>
         </div>
+        <div class="select-controls">
+          <button onclick={selectVisibleTickets}>Select visible</button>
+          <button onclick={() => { selectedTicketIds = [] }}>Clear</button>
+          <button onclick={() => { showBatchEditor = !showBatchEditor }} disabled={!selectedTicketIds.length}>Batch edit</button>
+        </div>
+        {#if showBatchEditor && selectedTicketIds.length}
+          <div class="batch-editor">
+            <strong>Batch editing · {selectedTicketIds.length} tickets</strong>
+            <div class="batch-actions">
+              <button onclick={() => void duplicateSelection()} disabled={busy}>Duplicate</button>
+              <button class="danger" onclick={() => void deleteSelection()} disabled={busy}>Delete selected</button>
+              <button onclick={() => void moveSelection('up')} disabled={busy}>↑ Move</button>
+              <button onclick={() => void moveSelection('down')} disabled={busy}>↓ Move</button>
+            </div>
+            <label for="batch-kind">Operation</label>
+            <select id="batch-kind" bind:value={batchKind}>
+              <option value="append">Append list item</option>
+              <option value="remove">Remove list item</option>
+              <option value="replace">Find and replace text</option>
+            </select>
+            {#if batchKind === 'replace'}
+              <label for="batch-text-field">Scope</label>
+              <select id="batch-text-field" bind:value={batchTextField}>
+                <option value="all">All text (except IDs)</option>
+                <option value="task">Task</option>
+                <option value="work">Work</option>
+                <option value="tests">Tests</option>
+                <option value="success_criteria">Success criteria</option>
+              </select>
+              <input bind:value={findText} placeholder="Find text" aria-label="Find text" />
+              <input bind:value={replaceText} placeholder="Replace with" aria-label="Replacement text" />
+            {:else}
+              <label for="batch-field">Field</label>
+              <select id="batch-field" bind:value={batchField}>
+                <option value="deps">Dependencies</option>
+                <option value="work">Work</option>
+                <option value="tests">Tests</option>
+                <option value="success_criteria">Success criteria</option>
+              </select>
+              <input bind:value={batchValue} placeholder="List item text" aria-label="Batch item" />
+            {/if}
+            <button class="primary" disabled={busy} onclick={() => void applyBatchEdit()}>Apply to selected</button>
+          </div>
+        {/if}
+        <div class="export-controls">
+          <label for="export-format">Copy format</label>
+          <select id="export-format" bind:value={exportFormat}>
+            <option value="compact">Compact JSON (default)</option>
+            <option value="pretty">Formatted JSON</option>
+            <option value="jsonl">JSONL</option>
+          </select>
+          <div class="batch-actions">
+            <button disabled={!selectedTicketIds.length} onclick={() => void copyTickets('selection')}>Copy selected</button>
+            <button onclick={() => void copyTickets('project')}>Copy project</button>
+            <button disabled={!selectedTicketIds.length} onclick={() => void saveExport('selection')}>Save selected…</button>
+            <button onclick={() => void saveExport('project')}>Save project…</button>
+          </div>
+        </div>
         <div class="ticket-list">
           {#each visibleTickets() as item (item.ticketUuid)}
-            <button class:active={item.ticketUuid === ticketUuid} class="ticket-card" onclick={() => openTicket(item)}>
+            <button class:active={item.ticketUuid === ticketUuid} class:selected={selectedTicketIds.includes(item.ticketUuid)} class="ticket-card" onclick={event => selectTicket(event, item)}>
               <span class="ticket-card-top">
                 <strong>Ticket {item.number}</strong>
                 <span class:warning={!item.validation.valid} class="status-dot" title={item.validation.valid ? 'Valid' : item.validation.errors.join('; ')}></span>
@@ -580,7 +786,7 @@
         <div class="welcome">
           <h1>TicketsEditor</h1>
           <p>{projectUuid ? 'Create or import tickets to begin editing.' : 'Register a project to begin.'}</p>
-          <p>AppData .tickets hardlink setup is the next milestone.</p>
+          <p>Register a project, import tickets, or add tickets to begin editing.</p>
         </div>
       {/if}
     </section>

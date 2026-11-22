@@ -9,6 +9,8 @@ import type {
 import { appendTicket, locateNode, removeNode, replaceNode } from '../shared/document-mutations'
 import { collectTicketLocations, parseTicketSource } from '../shared/ticket-source'
 import { validateTicket } from '../shared/ticket-validation'
+import { applyBatchOperation, uniqueCopyId } from '../shared/batch-operations'
+import type { BatchOperation } from '../shared/batch-operations'
 
 type ProjectRow = {
   project_uuid: string
@@ -255,4 +257,116 @@ export function updateTicket(
 export function deleteTicket(db: WorkspaceDatabase, projectUuid: string, ticketUuid: string): void {
   const before = ticketRow(db, projectUuid, ticketUuid)
   updateRoot(db, projectUuid, root => removeNode(root, findLocation(root, before.json_pointer)))
+}
+
+function resolveTickets(db: WorkspaceDatabase, projectUuid: string, ids: string[]): TicketRow[] {
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 500) {
+    throw new Error('Select between 1 and 500 tickets')
+  }
+  if (new Set(ids).size !== ids.length) throw new Error('Repeated ticket selection')
+  return ids.map(id => ticketRow(db, projectUuid, id))
+}
+
+export function applyBatchToTickets(
+  db: WorkspaceDatabase, projectUuid: string, ids: string[], operation: BatchOperation
+): number {
+  const selected = resolveTickets(db, projectUuid, ids)
+  updateRoot(db, projectUuid, root => {
+    const known = collectTicketLocations(root)
+    for (const row of selected) {
+      const location = known.find(item => item.pointer === row.json_pointer)
+      if (!location) throw new Error('Ticket location was removed before batch edit')
+      const current = locateNode(root, location.path)
+      if (!current || Array.isArray(current) || typeof current !== 'object') throw new Error('Invalid ticket location')
+      replaceNode(root, location.path, applyBatchOperation(current as TicketObject, operation))
+    }
+    return root
+  })
+  return selected.length
+}
+
+export function duplicateTickets(db: WorkspaceDatabase, projectUuid: string, ids: string[]): number {
+  const selected = resolveTickets(db, projectUuid, ids)
+  updateRoot(db, projectUuid, root => {
+    const locations = collectTicketLocations(root)
+    const used = new Set(locations.map(item => item.ticketId))
+    const resolved = selected.map(row => {
+      const location = locations.find(item => item.pointer === row.json_pointer)
+      if (!location || location.path.length === 0) throw new Error('Cannot duplicate a root object ticket')
+      const index = location.path[location.path.length - 1]
+      const parent = locateNode(root, location.path.slice(0, -1))
+      if (!Array.isArray(parent) || typeof index !== 'number') {
+        throw new Error('Tickets must belong to an array to duplicate')
+      }
+      return { parent, index }
+    })
+    // Descending indices prevent insertions from shifting yet-to-be-duplicated tickets.
+    for (const { parent, index } of resolved.sort((a, b) => b.index - a.index)) {
+      const copy = structuredClone(parent[index]) as TicketObject
+      copy.id = uniqueCopyId(String(copy.id), used)
+      parent.splice(index + 1, 0, copy)
+    }
+    return root
+  })
+  return selected.length
+}
+
+export function moveTickets(
+  db: WorkspaceDatabase, projectUuid: string, ids: string[], direction: 'up' | 'down'
+): number {
+  if (direction !== 'up' && direction !== 'down') throw new Error('Invalid move direction')
+  const selected = resolveTickets(db, projectUuid, ids)
+  updateRoot(db, projectUuid, root => {
+    const locations = collectTicketLocations(root)
+    const groups = new Map<string, { parent: unknown[]; indexes: Set<number> }>()
+    for (const row of selected) {
+      const location = locations.find(item => item.pointer === row.json_pointer)
+      if (!location || location.path.length === 0) throw new Error('Only tickets in arrays can be reordered')
+      const path = location.path.slice(0, -1)
+      const index = location.path[location.path.length - 1]
+      const parent = locateNode(root, path)
+      if (!Array.isArray(parent) || typeof index !== 'number') throw new Error('Only tickets in arrays can be reordered')
+      const key = JSON.stringify(path)
+      if (!groups.has(key)) groups.set(key, { parent, indexes: new Set() })
+      groups.get(key)!.indexes.add(index)
+    }
+    for (const { parent, indexes } of groups.values()) {
+      const indices = direction === 'up'
+        ? Array.from({ length: parent.length }, (_, i) => i).slice(1)
+        : Array.from({ length: parent.length }, (_, i) => i).slice(0, -1).reverse()
+      for (const i of indices) {
+        const neighbor = direction === 'up' ? i - 1 : i + 1
+        if (!indexes.has(i) || indexes.has(neighbor)) continue
+        ;[parent[i], parent[neighbor]] = [parent[neighbor], parent[i]]
+        indexes.delete(i)
+        indexes.add(neighbor)
+      }
+    }
+    return root
+  })
+  return selected.length
+}
+
+export function deleteSelectedTickets(db: WorkspaceDatabase, projectUuid: string, ids: string[]): number {
+  const selected = resolveTickets(db, projectUuid, ids)
+  updateRoot(db, projectUuid, root => {
+    const known = collectTicketLocations(root)
+    const positions = selected.map(row => {
+      const location = known.find(item => item.pointer === row.json_pointer)
+      if (!location) throw new Error('Ticket location was removed before deletion')
+      return location.path
+    })
+    // Delete array elements from higher indices so earlier locations remain valid.
+    positions.sort((a, b) => {
+      const aParent = JSON.stringify(a.slice(0, -1))
+      const bParent = JSON.stringify(b.slice(0, -1))
+      if (aParent !== bParent) return bParent.localeCompare(aParent)
+      const ai = a[a.length - 1]
+      const bi = b[b.length - 1]
+      return typeof ai === 'number' && typeof bi === 'number' ? bi - ai : 0
+    })
+    for (const path of positions) root = removeNode(root, path)
+    return root
+  })
+  return selected.length
 }

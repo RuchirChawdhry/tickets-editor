@@ -9,17 +9,17 @@ The repo starts as a runnable scaffold, not a completed editor.
 - SQLite database initialization and migrations with projects, documents, tickets, revisions, sync_state, and link mode.
 - Pure ticket validation requiring success_criteria.
 - Pure JSON/JSONL parsing and nested ticket location indexing.
-- Vitest unit tests, ESLint, formatting, TypeScript checking, Windows CI and packaging configuration.
+- Vitest unit tests, ESLint, formatting, TypeScript checking, Ubuntu Slim CI and cross-platform packaging configuration.
 
 ## Next milestones (dependency order)
 
 ### 1. Project library and persistence
 
-Implement register/edit/remove project, absolute project-root validation, ticket/document CRUD, transaction handling and revision writes. SQLite must contain complete per-project ticket JSON.
+Delivered: register/edit/remove project, absolute project-root validation, ticket/document CRUD, SQLite transactions and revision writes. All projects' complete ticket documents live in SQLite.
 
 ### 2. Managed .tickets file
 
-Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Provide **hardlink (same volume)** and **symlink (cross-volume)** setup choices, verify link identity, and refuse to overwrite unrelated files. Initial setup and verification are implemented; implement automatic watching, conflict workflows, repair and recovery next. Do not create managed backing files inside projects.
+Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Provide **hardlink (same volume)** and **symlink (cross-volume)** setup choices, verify link identity, and refuse to overwrite unrelated files. Setup, verification, filesystem notifications, explicit external import, revision restore, backup-before-repair and conflicting file detection are implemented. Improve crash recovery, safe merge previews and link-type changes next. Do not create managed backing files inside projects.
 
 ### 3. Multi-document UX
 
@@ -27,15 +27,15 @@ Add integrated document tabs (not ticket tabs), pinned commands, shared command 
 
 ### 4. Editing
 
-Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Include nested-field editing, array reorder, multi-select/batch corrections, duplicate and undo/redo.
+Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Current editor supports multi-select with Ctrl/Shift, array field batch edits, text replacement, nested-document preservation, duplication, move up/down, delete selection and export. Add schema-driven nested-field widgets, keyboard command registry, CodeMirror and undo/redo.
 
 ### 5. Import/export/validation
 
-Complete nested JSON and JSONL imports, collision diagnostics, draft-friendly validation, schema-aware ticket review, and compact JSON export by default. Preserve arbitrary custom properties.
+Current JSON/JSONL imports and compact/pretty/JSONL exports work. Finish duplicate-ID diagnostics, schema-aware validation summary, diff review and source-preserving export options. Preserve arbitrary custom properties.
 
-### 6. Windows QA and release
+### 6. Cross-platform QA and release
 
-Add full Windows integration tests for database IO, hardlink file identity, external editor replacement, corruption recovery, packaged runtime, keyboard workflow and context menus.
+Keep CI limited to Ubuntu Slim. Add full native integration tests later for each OS, SQLite/database/file crash recovery, external editor replacement, packaged runtime, keyboard workflow and context menus.
 
 The broader dependency-ordered implementation plan is maintained as a separate 42-ticket JSON/JSONL batch. The scaffold implements only its initial foundation; do not mark feature tickets complete on the strength of this documentation alone.
 

@@ -1,19 +1,21 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
-import { readFileSync, watch } from 'node:fs'
+import { readFileSync, writeFileSync, watch } from 'node:fs'
 import type { FSWatcher } from 'node:fs'
 import { extname, join } from 'node:path'
 import { getWorkspaceSummary, openWorkspaceDatabase } from './database'
 import type { WorkspaceDatabase } from './database'
 import {
   createTicket, deleteTicket, getProjectDocument, listProjects, listTickets,
-  registerProject, removeProject, replaceProjectDocument, updateProject, updateTicket
+  registerProject, removeProject, replaceProjectDocument, updateProject, updateTicket,
+  applyBatchToTickets, duplicateTickets, moveTickets, deleteSelectedTickets
 } from './project-store'
 import {
   assertProjectFileUnchanged, getProjectLinkStatus, initializeProjectFile,
   setupProjectLink, syncProjectFile, importExternalProjectFile, repairProjectLink,
   recoverCanonicalFromSqlite, listProjectRevisions, restoreProjectRevision
 } from './project-links'
-import type { LinkMode, ProjectInput, TicketObject } from '../shared/contracts'
+import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat } from '../shared/contracts'
+import type { BatchOperation } from '../shared/batch-operations'
 
 let database: WorkspaceDatabase | undefined
 let mainWindow: BrowserWindow | undefined
@@ -32,7 +34,8 @@ function refreshLinkWatchers(): void {
         handles.push(watch(path, () => {
           if (notifyHandle) clearTimeout(notifyHandle)
           notifyHandle = setTimeout(() => {
-            if (!mainWindow?.isDestroyed()) mainWindow.webContents.send('projects:link-changed')
+            const active = mainWindow
+            if (active && !active.isDestroyed()) active.webContents.send('projects:link-changed')
           }, 300)
         }))
       } catch { /* unavailable directories are checked again on window focus */ }
@@ -135,6 +138,49 @@ function registerHandlers(): void {
   ipcMain.handle('tickets:delete', (event, id: string, ticketId: string) => {
     const db = authorized(event)
     return mutateProject(db, id, () => deleteTicket(db, id, ticketId))
+  })
+  ipcMain.handle('tickets:batch', (event, id: string, ids: string[], operation: BatchOperation) => {
+    const db = authorized(event)
+    return mutateProject(db, id, () => applyBatchToTickets(db, id, ids, operation))
+  })
+  ipcMain.handle('tickets:duplicate-selected', (event, id: string, ids: string[]) => {
+    const db = authorized(event)
+    return mutateProject(db, id, () => duplicateTickets(db, id, ids))
+  })
+  ipcMain.handle('tickets:move-selected', (event, id: string, ids: string[], direction: 'up' | 'down') => {
+    const db = authorized(event)
+    return mutateProject(db, id, () => moveTickets(db, id, ids, direction))
+  })
+  ipcMain.handle('tickets:delete-selected', (event, id: string, ids: string[]) => {
+    const db = authorized(event)
+    return mutateProject(db, id, () => deleteSelectedTickets(db, id, ids))
+  })
+  ipcMain.handle('tickets:export', async (event, id: string, scope: 'selection' | 'project',
+    ids: string[], format: TicketExportFormat) => {
+    const db = authorized(event)
+    if (format !== 'compact' && format !== 'pretty' && format !== 'jsonl') throw new Error('Invalid export format')
+    if (scope !== 'selection' && scope !== 'project') throw new Error('Invalid export scope')
+    const project = listProjects(db).find(item => item.projectUuid === id)
+    if (!project) throw new Error('Project not found')
+    const records = listTickets(db, id)
+    if (scope === 'selection' && (!ids.length || ids.some(uuid => !records.some(row => row.ticketUuid === uuid)))) {
+      throw new Error('Select tickets in this project before exporting')
+    }
+    const data = scope === 'project'
+      ? getProjectDocument(db, id).document
+      : records.filter(row => ids.includes(row.ticketUuid)).map(row => row.payload)
+    const output = format === 'jsonl'
+      ? (Array.isArray(data) ? data : [data]).map(item => JSON.stringify(item)).join('\n')
+      : JSON.stringify(data, null, format === 'pretty' ? 2 : undefined)
+    const ext = format === 'jsonl' ? 'jsonl' : 'json'
+    const dialogResult = await dialog.showSaveDialog(mainWindow!, {
+      title: 'Export tickets',
+      defaultPath: project.name.replace(/[^a-z0-9_-]/giu, '-') + '.tickets.' + ext,
+      filters: [{ name: format === 'jsonl' ? 'JSON Lines' : 'JSON', extensions: [ext] }]
+    })
+    if (dialogResult.canceled || !dialogResult.filePath) return null
+    writeFileSync(dialogResult.filePath, output, 'utf8')
+    return dialogResult.filePath
   })
   ipcMain.handle('projects:link-status', (event, id: string) =>
     getProjectLinkStatus(authorized(event), app.getPath('userData'), id))

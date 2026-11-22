@@ -8,7 +8,7 @@ A cross-platform Electron desktop workspace for reviewing and correcting agent-g
 - **SQLite**: central project and ticket library in the application's user-data directory.
 - **Project file**: each registered project will expose a valid-JSON `.tickets` file at its root.
 - **Link setup**: each project has a canonical AppData `projects/<project-uuid>/tickets.json`; its `<project>/.tickets` can be a **hardlink** (same volume) or **symbolic link** (also supports another drive). Existing files are never replaced silently.
-- **Editor (planned)**: ticket navigator, editable humanized pane, pretty JSON pane, multi-ticket operations, nested JSON / JSONL imports, compact JSON export, and a Borumi-like integrated Windows title bar.
+- **Editor**: ticket navigator, editable humanized pane, readable JSON pane, multi-select and batch operations, nested JSON/JSONL imports, and compact JSON export (default). An integrated Windows title-bar foundation is present; advanced command palette and CodeMirror remain planned.
 
 ## Development
 
@@ -31,10 +31,20 @@ npm run build
 
 ## Scope of the initial scaffold
 
-The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, an initial humanized/JSON editing UI, AppData JSON files and user-selected hardlink/symlink setup. Full diff review, batch operations, auto file watching, repair, and advanced editors are still planned.
+The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Advanced diff review, merge UI, CodeMirror, undo/redo and configurable templates are still planned.
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 
 ## CI
 
 GitHub Actions uses only `.github/workflows/ci-workflows.yml` on the `ubuntu-slim` runner for headless typechecking, linting, tests and bundle builds. No Windows or macOS CI jobs are configured. Platform packaging is separate from CI verification.
+
+## Multi-ticket workflow
+
+1. Register a project and optionally import an existing JSON or JSONL collection.
+2. In Project Settings, choose **Hardlink** (same volume) or **Symbolic link** to expose the AppData canonical JSON as `<project>/.tickets`.
+3. Ctrl-click individual tickets or Shift-click ranges to select multiple tickets. Use **Select visible** for filtered results.
+4. Open **Batch edit** to append/remove dependencies, work items, tests, or success criteria; find and replace text; duplicate, move or delete the selection.
+5. Copy or save **compact JSON** (default), pretty JSON, or JSONL. Full-project JSON exports retain the original nested document hierarchy.
+
+When an external agent changes `.tickets`, the editor reports its state. The user explicitly chooses whether to import changed JSON, keep SQLite and back up external data, or repair a detached link. Recovery snapshots are kept in `<userData>/recovery/<project-uuid>/`. Detached file repair is never automatic.

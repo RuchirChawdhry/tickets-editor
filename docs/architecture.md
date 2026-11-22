@@ -21,7 +21,7 @@ TicketsEditor is a cross-platform, local-first, batch-oriented editor for fixing
 3. **Svelte renderer** owns UI state, tabs, editors, navigation, selection, and commands. It cannot access Node.js, SQLite, or the filesystem directly.
 4. **Shared TypeScript** contains document parsing, JSON path identification, and ticket validation, independent of Electron.
 5. **SQLite** holds the complete searchable library of projects and individual tickets.
-6. **Managed JSON files** provide an agent-readable project interface through .tickets.
+6. **Canonical AppData JSON files** are exposed to agents by a user-selected hardlink/symlink at each project's `.tickets` path.
 
 The active SQLite database lives in Electron's userData path as tickets-editor.sqlite. The project files and managed backing files are not SQLite databases.
 
@@ -35,7 +35,7 @@ The active SQLite database lives in Electron's userData path as tickets-editor.s
 
 Tickets can share the same agent-defined ID across different projects. A single project can temporarily have duplicate IDs while the user corrects invalid drafts; duplicates are validation issues, not silent data loss.
 
-**Important:** the initial SQLite schema and parser are implemented. Project registration, ticket CRUD, revision creation, file watchers, FTS, and synchronization are future tasks. The schema is not proof that those workflows already exist.
+**Implemented:** project registration, ticket CRUD, revision snapshots, AppData JSON updates, file-change notifications, explicit external import, conflict blocking, detached-link repair and batch ticket operations. **Not implemented:** FTS index, automatic three-way merge, rollback across SQLite/filesystem crash boundaries, full command palette, revision diff preview and CodeMirror.
 
 ## JSON documents
 
@@ -46,12 +46,12 @@ Document identity is not ticket identity. A display number is based on document 
 ## Editing and sync
 
 - One accepted document state powers the human view and the pretty JSON editor.
-- Editing a field on either side produces a patch against the corresponding JSON path.
+- Editing a human field or a valid JSON buffer updates the same in-memory ticket draft. Saving persists the full ticket payload at its indexed JSON path; CodeMirror targeted patching is planned.
 - Retain invalid text locally in the raw editor until it parses; report exact errors.
-- Revision history should record accepted changes; undo/redo applies to structural edits and text edits.
+- Revision history records accepted project-document snapshots. Users can explicitly restore a revision. Fine-grained undo/redo remains planned.
 - SQLite is the central indexed library. The project .tickets file is a portable interchange format.
-- External edits to .tickets must be detected, parsed, validated, and merged or presented as conflicts before replacing SQLite's accepted state.
-- File writes should be serialized per project. Use hashes and file identity to detect an external replacement or broken hardlink.
+- External edits are detected via file-hash checks and filesystem events. Users can import a valid external document or explicitly restore SQLite; automatic three-way merges remain planned.
+- A file hash is checked before writing to avoid silently overwriting external edits. A partial write or crash can leave divergence; explicit recovery is available but fully transactional cross-store commits remain planned.
 
 See ADR-0001 for both link modes and conflict handling.
 

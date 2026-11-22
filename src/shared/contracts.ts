@@ -3,6 +3,8 @@ export type LinkMode = 'hardlink' | 'symlink'
 export type LinkHealth = 'unconfigured' | 'linked' | 'broken' | 'changed' | 'conflict'
 export type JsonPath = Array<string | number>
 export type TicketObject = Record<string, unknown>
+export type TicketExportFormat = 'compact' | 'pretty' | 'jsonl'
+import type { BatchOperation } from './batch-operations'
 
 export interface TicketLocation {
   number: number
@@ -82,6 +84,11 @@ export interface TicketsEditorBridge {
   updateTicket(projectUuid: string, ticketUuid: string, payload: TicketObject): Promise<TicketRecord>
   deleteTicket(projectUuid: string, ticketUuid: string): Promise<void>
   importProjectDocument(projectUuid: string): Promise<ImportResult | null>
+  batchEditTickets(projectUuid: string, ids: string[], operation: BatchOperation): Promise<number>
+  duplicateTickets(projectUuid: string, ids: string[]): Promise<number>
+  moveTickets(projectUuid: string, ids: string[], direction: 'up' | 'down'): Promise<number>
+  deleteSelectedTickets(projectUuid: string, ids: string[]): Promise<number>
+  exportTickets(projectUuid: string, scope: 'selection' | 'project', ids: string[], format: TicketExportFormat): Promise<string | null>
   getProjectLinkStatus(projectUuid: string): Promise<ProjectLinkStatus>
   setupProjectLink(projectUuid: string, mode: LinkMode): Promise<ProjectLinkStatus>
   importExternalChanges(projectUuid: string, source?: 'canonical' | 'detached'): Promise<boolean>

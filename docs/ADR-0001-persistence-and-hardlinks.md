@@ -1,6 +1,6 @@
 # ADR 0001 — SQLite library, AppData JSON, and project file links
 
-Status: Accepted. The initial link creation and verification flows are implemented; change-watcher and repair UX remain future work.
+Status: Accepted. Link creation, verification, explicit reconciliation and backup-before-repair are implemented. Fully automatic merge and crash-atomic cross-store writes remain future work.
 
 ## Canonical storage
 
@@ -34,7 +34,7 @@ The user chooses the mode explicitly from project settings. Failed link setup mu
 2. Initialize `<userData>/projects/<project-uuid>/tickets.json` from the SQLite document.
 3. Click **Set Up .tickets Link**, choose **Hardlink** or **Symbolic link**.
 4. Inspect the target path. If `.tickets` already exists but is not the desired link, stop rather than replace it.
-5. For a hardlink, compare volume identity before creating it.
+5. For a hardlink, attempt creation and report the operating system's cross-device error; do not reject based on an unreliable directory/device precheck.
 6. For a symlink, use an absolute file target so cross-volume projects work.
 7. Verify same file identity (hardlink) or actual resolved path (symlink).
 8. Record link type, checksum, path and file identity in `sync_state`.
@@ -44,9 +44,9 @@ The user chooses the mode explicitly from project settings. Failed link setup mu
 - App edits validate project file state before modifying SQLite. After committing the accepted document, rewrite the same canonical AppData file in place and update sync metadata.
 - In-place writes preserve hardlink identity. The same target also remains reachable via symlink.
 - External modifications to an intact `.tickets` file change canonical JSON and must not be silently overwritten.
-- The first implementation exposes link-health verification and an explicit **Import external changes** action, which retains the prior SQLite document in revision history.
+- File watchers refresh link health in the renderer; users explicitly import external JSON. The import stores both old SQLite content and external JSON in AppData recovery files and writes a new SQLite revision.
 - Some text editors replace `.tickets` instead of writing through it. This can sever hardlinks or replace symlinks. Detect and report broken links. Reconcile changes before offering destructive repair.
-- Automatic filesystem watching, automatic reconciliation, conflict UI, resilient recovery from partial failures, and safe link-type switching are future milestones.
+- The application can restore a selected SQLite revision or overwrite the AppData JSON from SQLite after user confirmation and recovery snapshots. It detects broken links and allows explicit repair, backing up detached contents first. Automatic three-way merging, cross-store crash-atomic commits and safe link-type switching are future milestones.
 
 ## Explicit constraints
 

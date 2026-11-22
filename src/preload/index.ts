@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { BatchOperation } from '../shared/batch-operations'
 import type {
-  ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus, RevisionRecord,
+  ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus, RevisionRecord, TicketExportFormat,
   ProjectRecord, TicketObject, TicketRecord, TicketsEditorBridge, WorkspaceSummary
 } from '../shared/contracts'
 
@@ -24,6 +25,16 @@ const bridge: TicketsEditorBridge = {
     ipcRenderer.invoke('tickets:delete', id, ticketId) as Promise<void>,
   importProjectDocument: (id: string) =>
     ipcRenderer.invoke('projects:import', id) as Promise<ImportResult | null>,
+  batchEditTickets: (id: string, ids: string[], operation: BatchOperation) =>
+    ipcRenderer.invoke('tickets:batch', id, ids, operation) as Promise<number>,
+  duplicateTickets: (id: string, ids: string[]) =>
+    ipcRenderer.invoke('tickets:duplicate-selected', id, ids) as Promise<number>,
+  moveTickets: (id: string, ids: string[], direction: 'up' | 'down') =>
+    ipcRenderer.invoke('tickets:move-selected', id, ids, direction) as Promise<number>,
+  deleteSelectedTickets: (id: string, ids: string[]) =>
+    ipcRenderer.invoke('tickets:delete-selected', id, ids) as Promise<number>,
+  exportTickets: (id: string, scope: 'selection' | 'project', ids: string[], format: TicketExportFormat) =>
+    ipcRenderer.invoke('tickets:export', id, scope, ids, format) as Promise<string | null>,
   getProjectLinkStatus: (id: string) =>
     ipcRenderer.invoke('projects:link-status', id) as Promise<ProjectLinkStatus>,
   setupProjectLink: (id: string, mode: LinkMode) =>

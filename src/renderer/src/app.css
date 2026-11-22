@@ -73,3 +73,14 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
 .revision-list{display:flex;flex-direction:column;max-height:180px;overflow:auto;gap:6px}
 .revision-item{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#bac7d4;font-size:11px}
 .revision-item button,.revision-panel button{padding:5px 8px;background:#343c46;color:#d6dfeb;border:1px solid #4a5562;border-radius:4px;font-size:11px}
+
+.ticket-card.selected{border-color:#8facd7;box-shadow:inset 3px 0 0 #7eacd9}
+.select-controls,.batch-actions{display:flex;gap:5px;flex-wrap:wrap}
+.select-controls{padding:0 9px 9px}
+.select-controls button,.batch-actions button,.batch-editor button,.export-controls button{padding:5px 7px;background:#343c46;color:#dce6f1;border:1px solid #4a5562;border-radius:4px;font-size:11px}
+.select-controls button{flex:1}
+.batch-editor,.export-controls{display:flex;flex-direction:column;gap:7px;padding:10px;border-block:1px solid #414b57;background:#2b333c;font-size:11px}
+.batch-editor strong{font-size:12px}
+.batch-editor label,.export-controls label{color:#aab9c9}
+.batch-editor input,.batch-editor select,.export-controls select{padding:6px;font-size:11px;background:#252b33;color:#e5edf8;border:1px solid #465362;border-radius:3px;min-width:0}
+.export-controls{padding-bottom:12px}
