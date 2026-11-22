@@ -1041,7 +1041,7 @@
       {#if ticket()}
         <div class="human-body">
           {#if parseError}
-            <div class="parse-warning" role="status">JSON has a syntax error. The humanized form is locked until the JSON is corrected; your last valid fields are preserved.</div>
+            <div class="parse-warning" role="status">JSON has a syntax error. The Ticket Fields form is locked until the JSON is corrected; your last valid fields are preserved.</div>
           {/if}
           <label for="ticket-id">ID</label>
           <input id="ticket-id" disabled={!!parseError} value={textValue('id')} oninput={e => changeText('id', e.currentTarget.value)} />
