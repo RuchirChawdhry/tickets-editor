@@ -35,6 +35,21 @@ The current implementation includes SQLite-backed project registration and ticke
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 
+## Code quality
+
+The repository uses **ESLint + typescript-eslint + eslint-plugin-svelte** for complete JavaScript, TypeScript and Svelte linting, **svelte-check** plus TypeScript for type checking, and **Prettier + prettier-plugin-svelte** for formatting. Oxlint is an optional fast first pass for JS/TS files; Svelte templates stay under ESLint because Oxlint does not fully implement Svelte-specific template rules.
+
+```sh
+npm run lint:fast      # Optional fast first pass (Oxlint)
+npm run lint           # Full ESLint + Svelte linting
+npm run lint:all       # Oxlint first, then ESLint
+npm run typecheck      # TypeScript + svelte-check
+npm run format:check   # Prettier verification
+npm run format         # Apply Prettier formatting
+```
+
+The mandatory Ubuntu Slim CI still runs the full `lint` and `typecheck` scripts. Oxlint is an optional local command and does not replace these checks.
+
 ## CI
 
 GitHub Actions uses only `.github/workflows/ci-workflows.yml` on the `ubuntu-slim` runner for headless typechecking, linting, tests and bundle builds. No Windows or macOS CI jobs are configured. Platform packaging is separate from CI verification.
