@@ -35,7 +35,7 @@ The active SQLite database lives in Electron's userData path as tickets-editor.s
 
 Tickets can share the same agent-defined ID across different projects. A single project can temporarily have duplicate IDs while the user corrects invalid drafts; duplicates are validation issues, not silent data loss.
 
-**Implemented:** project registration, ticket CRUD, revision snapshots, AppData JSON updates, file-change notifications, explicit external import, conflict blocking, detached-link repair and batch ticket operations. **Not implemented:** FTS index, rollback across SQLite/filesystem crash boundaries, full command palette and schema-driven nested-field forms. Automatic three-way merging is intentionally out of scope.
+**Implemented:** project registration, ticket CRUD, revision snapshots, AppData JSON updates, file-change notifications, explicit external import, conflict blocking, detached-link repair and batch ticket operations. **Not implemented:** FTS index, rollback across SQLite/filesystem crash boundaries, full command palette and CodeMirror. Automatic three-way merging is intentionally out of scope.
 
 ## JSON documents
 
@@ -46,9 +46,9 @@ Document identity is not ticket identity. A display number is based on document 
 ## Editing and sync
 
 - One accepted document state powers the human view and the pretty JSON editor.
-- The CodeMirror 6 JSON document is the shared unsaved draft and undo/redo history. Changes from the humanized pane dispatch through CodeMirror; valid JSON edits update the form. Invalid JSON remains in the editor without replacing the last parseable form state. Saving persists the complete ticket payload at its indexed JSON path.
+- Editing a human field or a valid JSON buffer updates the same in-memory ticket draft. Saving persists the full ticket payload at its indexed JSON path; CodeMirror targeted patching is planned.
 - Retain invalid text locally in the raw editor until it parses; report exact errors.
-- Revision history records accepted project-document snapshots. CodeMirror supplies per-ticket unsaved edit undo/redo for both panes; project revision restore is a separate persisted operation.
+- Revision history records accepted project-document snapshots. Users can explicitly restore a revision. Fine-grained undo/redo remains planned.
 - SQLite is the central indexed library. The project .tickets file is a portable interchange format.
 - External edits are detected via file-hash checks and filesystem events as a recovery safeguard. Users can explicitly reconcile unexpected edits; automatic three-way merging is not planned. Agents will use the future MCP interface for structured writes rather than editing the linked JSON directly.
 - A file hash is checked before writing to avoid silently overwriting external edits. A partial write or crash can leave divergence; explicit recovery is available but fully transactional cross-store commits remain planned.

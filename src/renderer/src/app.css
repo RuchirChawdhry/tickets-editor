@@ -45,13 +45,7 @@ input:focus,textarea:focus{border-color:#719acc}
 button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger{color:#f3a9a3}
 .validation-warning{background:#3b352a;border-left:3px solid #d9a257;padding:10px 12px;font-size:12px}
 .validation-warning p{margin:5px 0;color:#e6c49a}
-.json-code-shell{flex:1;min-height:0;min-width:0;overflow:hidden;margin:0 10px 10px;border:1px solid #35404d;border-radius:4px;background:#20252d}
-.json-code-shell .cm-editor{height:100%;outline:none}
-.json-code-shell .cm-editor.cm-focused{outline:1px solid #719acc;outline-offset:-1px}
-.json-header-actions{display:flex;align-items:center;gap:10px;letter-spacing:normal}
-.json-header-actions button{padding:4px 8px;border:1px solid #4a5562;border-radius:4px;background:#343c46;color:#cbd8e6;font-size:11px}
-.json-header-actions button:disabled{opacity:.45}
-.parse-warning{font-size:12px;line-height:1.5;color:#ecc390;background:#3c3327;padding:10px 12px;border-left:3px solid #d9a257}
+.json-code{flex:1;min-height:0;resize:none;margin:0 10px 10px;padding:15px;background:#20252d;color:#cfdeec;font:12px/1.7 Consolas,"Cascadia Code",monospace;white-space:pre;overflow:auto}
 .parse-error{margin:0;padding:9px 12px;color:#eab0a7;background:#3a2a2d;font-size:12px}
 .welcome{padding:70px 25px;text-align:center}.welcome h1{font-size:24px}.welcome p{font-size:13px;color:#9caabd}
 .statusbar{height:29px;min-height:29px;display:flex;gap:14px;align-items:center;padding:0 12px;font-size:11px;color:#8f9dac;background:#1b2026;border-top:1px solid #343a44}

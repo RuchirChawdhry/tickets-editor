@@ -513,7 +513,7 @@
     if (parseError) { error = 'Fix the JSON syntax before saving'; return }
     busy = true
     try {
-      const saved = await window.ticketsEditor.updateTicket(projectUuid, ticketUuid, draft)
+      const saved = await window.ticketsEditor.updateTicket(projectUuid, ticketUuid, draft, ticket()?.payload)
       await reload(saved.ticketUuid)
       message = 'Saved to SQLite'
       error = ''

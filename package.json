@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "electron-vite dev",
-    "build": "npm run typecheck && electron-vite build",
+    "build": "npm run typecheck && electron-vite build && npm run build:mcp",
     "preview": "electron-vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && svelte-check --tsconfig tsconfig.web.json",
     "lint": "eslint .",
@@ -20,7 +20,9 @@
     "dist:win": "npm run build && electron-builder --win nsis",
     "postinstall": "electron-builder install-app-deps",
     "dist:linux": "npm run build && electron-builder --linux",
-    "dist:mac": "npm run build && electron-builder --mac"
+    "dist:mac": "npm run build && electron-builder --mac",
+    "build:mcp": "esbuild src/mcp/server.ts --bundle --platform=node --format=esm --target=node24 --outfile=out/mcp/server.mjs --external:better-sqlite3",
+    "mcp": "npm run build && electron . --mcp"
   },
   "dependencies": {
     "@codemirror/commands": "^6.0.0",
@@ -29,8 +31,10 @@
     "@codemirror/lint": "^6.9.8",
     "@codemirror/view": "^6.0.0",
     "@lezer/highlight": "^1.2.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "better-sqlite3": "^13.2.0",
-    "codemirror": "^6.0.2"
+    "codemirror": "^6.0.2",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",
@@ -48,6 +52,8 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^8.3.8",
-    "vitest": "^5.0.5"
+    "vitest": "^5.0.5",
+    "esbuild": "^0.25.0",
+    "@modelcontextprotocol/client": "^2.0.0"
   }
 }

@@ -2,12 +2,12 @@ import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
 import { readFileSync, writeFileSync, watch } from 'node:fs'
 import type { FSWatcher } from 'node:fs'
 import { extname, join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { getWorkspaceSummary, openWorkspaceDatabase } from './database'
 import type { WorkspaceDatabase } from './database'
 import {
-  createTicket, deleteTicket, getProjectDocument, listProjects, listTickets,
-  registerProject, removeProject, replaceProjectDocument, updateProject, updateTicket,
-  applyBatchToTickets, duplicateTickets, moveTickets, deleteSelectedTickets
+  getProjectDocument, listProjects, listTickets, registerProject,
+  removeProject, replaceProjectDocument, updateProject
 } from './project-store'
 import {
   assertProjectFileUnchanged, getProjectLinkStatus, initializeProjectFile,
@@ -17,8 +17,11 @@ import {
 import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat, RevisionReference } from '../shared/contracts'
 import { loadRevisionSnapshot } from './revision-snapshots'
 import type { BatchOperation } from '../shared/batch-operations'
+import { TicketWorkspace } from './ticket-workspace'
 
 let database: WorkspaceDatabase | undefined
+let workspace: TicketWorkspace | undefined
+const mcpMode = process.argv.includes('--mcp')
 let mainWindow: BrowserWindow | undefined
 const watchers = new Map<string, FSWatcher[]>()
 let notifyHandle: ReturnType<typeof setTimeout> | undefined
@@ -53,11 +56,9 @@ function authorized(event: Electron.IpcMainInvokeEvent): WorkspaceDatabase {
   return database
 }
 
-function mutateProject<T>(db: WorkspaceDatabase, projectUuid: string, apply: () => T): T {
-  assertProjectFileUnchanged(db, app.getPath('userData'), projectUuid)
-  const result = apply()
-  syncProjectFile(db, app.getPath('userData'), projectUuid)
-  return result
+function ticketService(): TicketWorkspace {
+  if (!workspace) throw new Error('Ticket workspace is not available')
+  return workspace
 }
 
 function createWindow(): void {
@@ -93,7 +94,7 @@ function createWindow(): void {
 function registerHandlers(): void {
   ipcMain.handle('app:version', event => { authorized(event); return app.getVersion() })
   ipcMain.handle('workspace:summary', event => getWorkspaceSummary(authorized(event)))
-  ipcMain.handle('projects:list', event => listProjects(authorized(event)))
+  ipcMain.handle('projects:list', event => { authorized(event); return ticketService().listProjects() })
   ipcMain.handle('projects:choose-directory', async event => {
     authorized(event)
     const result = await dialog.showOpenDialog(mainWindow!, {
@@ -126,35 +127,39 @@ function registerHandlers(): void {
     removeProject(authorized(event), id)
     refreshLinkWatchers()
   })
-  ipcMain.handle('tickets:list', (event, id: string) => listTickets(authorized(event), id))
-  ipcMain.handle('projects:document', (event, id: string) => getProjectDocument(authorized(event), id))
+  ipcMain.handle('tickets:list', (event, id: string) => { authorized(event); return ticketService().listTickets(id) })
+  ipcMain.handle('projects:document', (event, id: string) => { authorized(event); return ticketService().getDocument(id) })
   ipcMain.handle('tickets:create', (event, id: string) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => createTicket(db, id))
+    authorized(event)
+    return ticketService().createTicket(id)
   })
-  ipcMain.handle('tickets:update', (event, id: string, ticketId: string, payload: TicketObject) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => updateTicket(db, id, ticketId, payload))
+  ipcMain.handle('tickets:update', (
+    event, id: string, ticketId: string, payload: TicketObject, previousPayload?: TicketObject
+  ) => {
+    authorized(event)
+    return ticketService().updateTicket(id, ticketId, payload, undefined, previousPayload)
   })
   ipcMain.handle('tickets:delete', (event, id: string, ticketId: string) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => deleteTicket(db, id, ticketId))
+    authorized(event)
+    return ticketService().deleteTicket(id, ticketId)
   })
   ipcMain.handle('tickets:batch', (event, id: string, ids: string[], operation: BatchOperation) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => applyBatchToTickets(db, id, ids, operation))
+    authorized(event)
+    return ticketService().batchEdit(id, ids, operation)
   })
   ipcMain.handle('tickets:duplicate-selected', (event, id: string, ids: string[]) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => duplicateTickets(db, id, ids))
+    authorized(event)
+    return ticketService().duplicate(id, ids)
   })
-  ipcMain.handle('tickets:move-selected', (event, id: string, ids: string[], direction: 'up' | 'down') => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => moveTickets(db, id, ids, direction))
+  ipcMain.handle('tickets:move-selected', (
+    event, id: string, ids: string[], direction: 'up' | 'down'
+  ) => {
+    authorized(event)
+    return ticketService().move(id, ids, direction)
   })
   ipcMain.handle('tickets:delete-selected', (event, id: string, ids: string[]) => {
-    const db = authorized(event)
-    return mutateProject(db, id, () => deleteSelectedTickets(db, id, ids))
+    authorized(event)
+    return ticketService().deleteSelected(id, ids)
   })
   ipcMain.handle('tickets:export', async (event, id: string, scope: 'selection' | 'project',
     ids: string[], format: TicketExportFormat) => {
@@ -212,7 +217,12 @@ function registerHandlers(): void {
     const filePath = result.filePaths[0]
     const format = extname(filePath).toLowerCase() === '.jsonl' ? 'jsonl' : 'json'
     const source = readFileSync(filePath, 'utf8')
-    return mutateProject(db, id, () => replaceProjectDocument(db, id, source, format))
+    return db.transaction(() => {
+      assertProjectFileUnchanged(db, app.getPath('userData'), id)
+      const result = replaceProjectDocument(db, id, source, format)
+      syncProjectFile(db, app.getPath('userData'), id)
+      return result
+    }).immediate()
   })
   ipcMain.handle('projects:revision-snapshot', (event, id: string, reference: RevisionReference) =>
     loadRevisionSnapshot(authorized(event), id, reference))
@@ -276,15 +286,32 @@ function registerHandlers(): void {
 app.whenReady().then(() => {
   try {
     database = openWorkspaceDatabase(join(app.getPath('userData'), 'tickets-editor.sqlite'))
-    registerHandlers()
-    createWindow()
-    refreshLinkWatchers()
+    workspace = new TicketWorkspace(database, app.getPath('userData'))
+    if (mcpMode) {
+      // The official SDK is ESM; load its bundled entry only when an MCP host
+      // launches the Electron executable with --mcp. Do not open a GUI.
+      const moduleUrl = pathToFileURL(join(__dirname, '../mcp/server.mjs')).href
+      void import(moduleUrl).then(async module => {
+        const start = module.startTicketMcpServer as (service: TicketWorkspace) => Promise<void>
+        await start(ticketService())
+      }).catch(error => {
+        console.error('TicketsEditor MCP startup failed:', error)
+        app.exit(1)
+      })
+      process.stdin.on('end', () => app.quit())
+    } else {
+      registerHandlers()
+      createWindow()
+      refreshLinkWatchers()
+    }
   } catch (error) {
-    dialog.showErrorBox('TicketsEditor failed to start', String(error))
+    if (mcpMode) console.error('TicketsEditor MCP failed:', error)
+    else dialog.showErrorBox('TicketsEditor failed to start', String(error))
     app.quit()
   }
 }).catch(error => {
-  dialog.showErrorBox('TicketsEditor failed to start', String(error))
+  if (mcpMode) console.error('TicketsEditor MCP failed:', error)
+  else dialog.showErrorBox('TicketsEditor failed to start', String(error))
   app.quit()
 })
 app.on('activate', () => {
@@ -299,4 +326,5 @@ app.on('before-quit', () => {
   watchers.clear()
   database?.close()
   database = undefined
+  workspace = undefined
 })

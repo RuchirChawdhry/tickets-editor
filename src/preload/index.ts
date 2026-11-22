@@ -20,8 +20,8 @@ const bridge: TicketsEditorBridge = {
   getProjectDocument: (id: string) =>
     ipcRenderer.invoke('projects:document', id) as Promise<ProjectDocument>,
   createTicket: (id: string) => ipcRenderer.invoke('tickets:create', id) as Promise<TicketRecord>,
-  updateTicket: (id: string, ticketId: string, payload: TicketObject) =>
-    ipcRenderer.invoke('tickets:update', id, ticketId, payload) as Promise<TicketRecord>,
+  updateTicket: (id: string, ticketId: string, payload: TicketObject, previousPayload?: TicketObject) =>
+    ipcRenderer.invoke('tickets:update', id, ticketId, payload, previousPayload) as Promise<TicketRecord>,
   deleteTicket: (id: string, ticketId: string) =>
     ipcRenderer.invoke('tickets:delete', id, ticketId) as Promise<void>,
   importProjectDocument: (id: string) =>

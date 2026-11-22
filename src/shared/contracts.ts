@@ -88,7 +88,7 @@ export interface TicketsEditorBridge {
   listTickets(projectUuid: string): Promise<TicketRecord[]>
   getProjectDocument(projectUuid: string): Promise<ProjectDocument>
   createTicket(projectUuid: string): Promise<TicketRecord>
-  updateTicket(projectUuid: string, ticketUuid: string, payload: TicketObject): Promise<TicketRecord>
+  updateTicket(projectUuid: string, ticketUuid: string, payload: TicketObject, previousPayload?: TicketObject): Promise<TicketRecord>
   deleteTicket(projectUuid: string, ticketUuid: string): Promise<void>
   importProjectDocument(projectUuid: string): Promise<ImportResult | null>
   batchEditTickets(projectUuid: string, ids: string[], operation: BatchOperation): Promise<number>
