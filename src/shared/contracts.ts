@@ -5,6 +5,7 @@ export type JsonPath = Array<string | number>
 export type TicketObject = Record<string, unknown>
 export type TicketExportFormat = 'compact' | 'pretty' | 'jsonl'
 import type { BatchOperation } from './batch-operations'
+import type { ContextAction, ContextMenuRequest } from './context-menu'
 
 export interface TicketLocation {
   number: number
@@ -80,6 +81,7 @@ export interface RevisionRecord {
 export interface TicketsEditorBridge {
   getVersion(): Promise<string>
   setTheme(theme: 'dark' | 'light'): Promise<void>
+  showContextMenu(request: ContextMenuRequest): Promise<ContextAction | null>
   getSummary(): Promise<WorkspaceSummary>
   listProjects(): Promise<ProjectRecord[]>
   chooseProjectDirectory(): Promise<string | null>

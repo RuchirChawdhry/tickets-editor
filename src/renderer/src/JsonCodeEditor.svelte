@@ -4,7 +4,7 @@
   import { Compartment } from '@codemirror/state'
   import type { Extension } from '@codemirror/state'
   import { keymap } from '@codemirror/view'
-  import { indentWithTab, redo, undo } from '@codemirror/commands'
+  import { indentWithTab, redo, undo, redoDepth, undoDepth } from '@codemirror/commands'
   import { json, jsonParseLinter } from '@codemirror/lang-json'
   import { lintGutter, linter } from '@codemirror/lint'
   import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
@@ -126,6 +126,54 @@
 
   export function focusEditor(): void {
     editor?.focus()
+  }
+
+  export function canUndoEdit(): boolean {
+    return editor !== null && undoDepth(editor.state) > 0
+  }
+
+  export function canRedoEdit(): boolean {
+    return editor !== null && redoDepth(editor.state) > 0
+  }
+
+  export function hasSelectedText(): boolean {
+    const selection = editor?.state.selection.main
+    return selection !== undefined && !selection.empty
+  }
+
+  export async function copySelectedText(cut = false): Promise<void> {
+    if (!editor) return
+    const selection = editor.state.selection.main
+    if (selection.empty) return
+    const text = editor.state.sliceDoc(selection.from, selection.to)
+    await navigator.clipboard.writeText(text)
+    if (cut) {
+      editor.dispatch({
+        changes: { from: selection.from, to: selection.to, insert: '' },
+        selection: { anchor: selection.from },
+        userEvent: 'delete.cut'
+      })
+    }
+    editor.focus()
+  }
+
+  export async function pasteText(): Promise<void> {
+    if (!editor) return
+    const text = await navigator.clipboard.readText()
+    if (!text) return
+    const selection = editor.state.selection.main
+    editor.dispatch({
+      changes: { from: selection.from, to: selection.to, insert: text },
+      selection: { anchor: selection.from + text.length },
+      userEvent: 'input.paste'
+    })
+    editor.focus()
+  }
+
+  export function selectAllText(): void {
+    if (!editor) return
+    editor.dispatch({ selection: { anchor: 0, head: editor.state.doc.length } })
+    editor.focus()
   }
 
   onMount(() => {
