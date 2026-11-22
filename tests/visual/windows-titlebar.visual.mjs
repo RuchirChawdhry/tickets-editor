@@ -93,12 +93,23 @@ async function checkGeometry(page) {
       settingsWidth: Math.round(settings.width),
       settingsBorderLeft: borders.borderLeftWidth,
       settingsBorderRight: borders.borderRightWidth,
+      titlebarColor: getComputedStyle(document.querySelector('.titlebar')).backgroundColor,
+      customizeColor: getComputedStyle(document.querySelector('.titlebar-customize-trigger')).backgroundColor,
+      settingsColor: borders.backgroundColor,
+      activeTabColor: document.querySelector('.tab.active')
+        ? getComputedStyle(document.querySelector('.tab.active')).backgroundColor : null,
       reservedLeft: Math.round(native.left),
       brandText: document.querySelector('.brand').textContent.trim(),
       baseFont: getComputedStyle(document.documentElement).fontSize,
     };
   });
   assert.equal(rect.height, 42, 'Title bar must remain 42px high');
+  assert.equal(rect.titlebarColor, 'rgb(23, 23, 23)', 'Title bar must use #171717');
+  assert.equal(rect.customizeColor, 'rgb(23, 23, 23)', 'Customize slot must match title bar');
+  assert.equal(rect.settingsColor, 'rgb(23, 23, 23)', 'Settings slot must match title bar');
+  if (rect.activeTabColor !== null) {
+    assert.equal(rect.activeTabColor, 'rgb(10, 10, 10)', 'Active tab must use #0A0A0A');
+  }
   assert.equal(rect.reserved, 140, 'Windows caption reservation must remain 140px');
   assert.equal(rect.settingsWidth, 42, 'Settings is an independent 42px slot');
   assert.equal(rect.settingsRight, rect.reservedLeft,

@@ -24,12 +24,12 @@ button,input,textarea,select{font:inherit}button{cursor:pointer}button:disabled{
 input,textarea{background:#252b33;color:#edf0f5;border:1px solid #424b56;border-radius:4px;outline:none;padding:9px;min-width:0}
 input:focus,textarea:focus{border-color:#719acc}
 .app{height:100%;display:flex;flex-direction:column;min-width:0}
-.titlebar{height:42px;min-height:42px;display:flex;align-items:stretch;background:#20242a;border-bottom:1px solid #353b44;-webkit-app-region:drag;user-select:none}
+.titlebar{height:42px;min-height:42px;display:flex;align-items:stretch;background:#171717;border-bottom:1px solid #353b44;-webkit-app-region:drag;user-select:none}
 .brand{display:flex;align-items:center;gap:9px;padding:0 16px;font-size:var(--type-sm);font-weight:600;-webkit-app-region:no-drag}
 .brand-icon{display:grid;place-items:center;width:19px;height:19px;border-radius:3px;background:#4079bd}
 .tabs{display:flex;align-items:stretch;max-width:43vw;overflow-x:auto;overflow-y:hidden;-webkit-app-region:no-drag}
 .tab{border:0;border-left:1px solid #353b44;background:transparent;color:#b4bdc8;padding:0 13px;white-space:nowrap;font-size:var(--type-sm)}
-.tab.active{background:#303740;color:white}.tab:hover,.title-action:hover{background:#38414c}
+.tab.active{background:#0a0a0a;color:white}.tab:hover,.title-action:hover{background:#282828}.tab.active:hover{background:#0a0a0a}
 .drag-space{flex:1;min-width:15px}.title-actions{display:flex;-webkit-app-region:no-drag}
 .title-action{border:0;background:transparent;color:#b6c3d1;font-size:19px;width:32px;-webkit-app-region:no-drag}
 .caption-reserved{width:140px;flex:0 0 140px;pointer-events:none}
@@ -245,7 +245,7 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
   width: 42px;
   height: 42px;
   align-self: stretch;
-  background: #20242a;
+  background: #171717;
   border: 0;
   border-left: 1px solid #46515e;
   border-right: 1px solid #46515e;
@@ -375,7 +375,7 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
   width: 42px;
   height: 42px;
   align-self: stretch;
-  background: #20242a;
+  background: #171717;
   color: #c3d3e6;
   border: 0;
   border-left: 1px solid #46515e;

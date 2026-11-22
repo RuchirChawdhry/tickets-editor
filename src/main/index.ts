@@ -71,7 +71,7 @@ function createWindow(): void {
     backgroundColor: '#20242a',
     title: 'TicketsEditor',
     titleBarStyle: onWindows ? 'hidden' : 'default',
-    titleBarOverlay: onWindows ? { color: '#20242a', symbolColor: '#f3f4f6', height: 42 } : undefined,
+    titleBarOverlay: onWindows ? { color: '#171717', symbolColor: '#f3f4f6', height: 42 } : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
