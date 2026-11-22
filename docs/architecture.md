@@ -74,3 +74,7 @@ The visual revision diff is read-only. Snapshot reads are scoped to a registered
 ## Authoritative ticket writes
 
 SQLite is the sole authoritative ticket store. AppData `tickets.json` is a synchronized JSON projection; the project-root `.tickets` is a hardlink or symlink to that projection, not a second editing branch. All routine modifications use the application's ticket service. When introduced, agent-facing MCP methods must call that same service. Unexpected external file edits are treated as exceptional recovery events, not a concurrent editing workflow. No automatic three-way merge engine is planned.
+
+## MCP agent interface
+
+The renderer and agent-facing MCP use the same `TicketWorkspace` service for ticket CRUD and batch changes. Its SQLite immediate transaction serializes application writes across processes and verifies the JSON projection before mutation. The dedicated MCP ESM module loads in Electron main-process `--mcp` mode without a GUI; it shares Electron's SQLite native runtime. Only registered projects are exposed. Agent writes do not touch `.tickets` directly. Read-only MCP calls do not write SQLite.

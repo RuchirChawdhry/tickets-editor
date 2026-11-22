@@ -52,3 +52,7 @@ When an external agent changes `.tickets`, the editor reports its state. The use
 ## Visual revision diffs
 
 Open **Project Settings → Revision history → Compare**. The read-only comparison viewer opens with the selected revision on the left and the current saved SQLite document on the right. Choose another revision on either side, inspect highlighted additions, deletions and changes, and use Previous/Next to navigate change groups. Unchanged lines are hidden except for nearby context; enable **Show unchanged lines** to view the entire document. Differences are computed on consistently pretty-printed JSON. This view never restores a revision or modifies project files.
+
+## MCP agent integration
+
+TicketsEditor includes a local, headless stdio MCP server using the same SQLite ticket service as the UI. Start it through the Electron executable with `--mcp` (not through an npm log-producing wrapper). Agents can discover, read, create, update, delete, batch-edit, duplicate, and reorder registered tickets; stale writes are rejected. See [MCP setup and tools](docs/mcp.md).
