@@ -1,0 +1,78 @@
+{
+  "project": {
+    "title": "Agentic VM nested ticket regression",
+    "metadata": {
+      "locale": "en",
+      "nested": {
+        "keep": [
+          "a",
+          {
+            "b": 2
+          }
+        ]
+      }
+    },
+    "milestones": [
+      {
+        "name": "Desktop",
+        "tickets": [
+          {
+            "id": "avm-089",
+            "task": "Package and publish developer install",
+            "deps": [
+              "avm-001"
+            ],
+            "work": "Ship wheel",
+            "tests": "Clean Windows install",
+            "details": {
+              "flags": [
+                1,
+                2,
+                3
+              ],
+              "metadata": {
+                "keep": true
+              }
+            }
+          },
+          {
+            "id": "avm-090",
+            "task": "Write docs",
+            "deps": [],
+            "work": [
+              "Create docs",
+              "Verify links"
+            ],
+            "tests": [
+              "Docs smoke"
+            ],
+            "success_criteria": []
+          }
+        ]
+      },
+      {
+        "name": "Stability",
+        "tickets": [
+          {
+            "id": "avm-091",
+            "task": "Regression gate",
+            "deps": [
+              "avm-090"
+            ],
+            "work": "Automate test suite",
+            "tests": [
+              "Unit",
+              "Integration"
+            ],
+            "flags": {
+              "modes": [
+                "strict",
+                "fast"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

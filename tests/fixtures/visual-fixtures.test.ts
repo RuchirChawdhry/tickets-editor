@@ -7,6 +7,8 @@ import { validateTicket } from '../../src/shared/ticket-validation'
 const fixtures = [
   { file: 'sample-tickets.jsonl', format: 'jsonl' as const, expected: 16 },
   { file: 'nested-tickets.json', format: 'json' as const, expected: 16 },
+  { file: 'mixed-shape-tickets.jsonl', format: 'jsonl' as const, expected: 3 },
+  { file: 'mixed-shape-nested.json', format: 'json' as const, expected: 3 },
 ]
 
 describe('visual review ticket fixtures', () => {

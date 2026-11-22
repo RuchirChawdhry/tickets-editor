@@ -1,0 +1,3 @@
+{"id":"avm-089","task":"Package and publish developer install","deps":["avm-001","avm-004","avm-084"],"work":"Ship wheel/CLI entry point and optional Scoop manifest","tests":"Clean supported Windows host installs avm and runs it","contract":{"outputs":{"wheel":true},"tags":["release","native"]}}
+{"id":"avm-090","task":"Complete operator documentation","deps":["avm-089"],"work":["Write quickstart","Document CLI flags"],"tests":["README smoke test"],"success_criteria":[],"metadata":{"audience":"developers"}}
+{"id":"avm-091","task":"Enforce final acceptance gate","deps":[],"work":"Run final checks","tests":["Pass acceptance suite"],"success_criteria":["All checks pass"],"extra":{"nested":{"enabled":true}}}
