@@ -1,5 +1,6 @@
 appId: io.github.ruchirchawdhry.ticketseditor
 productName: TicketsEditor
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 directories:
   output: dist
 files:

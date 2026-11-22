@@ -1,0 +1,183 @@
+name: Tagged desktop release
+
+# A version tag triggers native packaging, then one GitHub Release.
+# Ordinary branch pushes and pull requests never publish packages.
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tickets-editor-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    name: Validate release source and version
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Ensure the release tag matches package.json
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const { version } = require('./package.json')
+          const tag = process.env.GITHUB_REF_NAME
+          if (!/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(tag) || tag !== 'v' + version) {
+            console.error('Release tag ' + tag + ' must equal package.json version v' + version)
+            process.exit(1)
+          }
+          NODE
+      # No package-lock.json exists yet, so npm ci is not possible.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit tests
+        run: npm test
+      - name: Build bundles
+        run: npm run build
+
+  package:
+    name: Package ${{ matrix.platform }} / ${{ matrix.arch }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            platform: win
+            arch: x64
+            targets: nsis
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            targets: AppImage deb
+          - runner: macos-15-intel
+            platform: mac
+            arch: x64
+            targets: dmg zip
+          - runner: macos-15
+            platform: mac
+            arch: arm64
+            targets: dmg zip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies on the target OS/CPU
+        run: npm install --no-audit --no-fund
+      - name: Build Electron and MCP bundles
+        run: npm run build
+      - name: Build installers (no implicit release uploads)
+        shell: bash
+        env:
+          # Signing identities have not been configured yet.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --${{ matrix.platform }} ${{ matrix.targets }} --${{ matrix.arch }} --publish never
+      - name: Confirm expected packages exist
+        shell: bash
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          version = json.loads(Path('package.json').read_text())['version']
+          platform = os.environ['TARGET_PLATFORM']
+          arch = os.environ['TARGET_ARCH']
+          extensions = {'win': ['exe'], 'linux': ['AppImage', 'deb'], 'mac': ['dmg', 'zip']}
+          for extension in extensions[platform]:
+              artifact = Path('dist') / f'TicketsEditor-{version}-{platform}-{arch}.{extension}'
+              if not artifact.is_file() or artifact.stat().st_size == 0:
+                  raise SystemExit(f'Missing or empty installer: {artifact}')
+              print(f'{artifact}: {artifact.stat().st_size:,} bytes')
+          PY
+      - name: Upload installers for release assembly
+        uses: actions/upload-artifact@v4
+        with:
+          name: tickets-editor-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+            dist/*.deb
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish GitHub Release
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Download all native build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: tickets-editor-*
+          merge-multiple: true
+          path: release-assets
+      - name: Verify the complete set and create SHA256SUMS.txt
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import os
+          from pathlib import Path
+
+          version = os.environ['GITHUB_REF_NAME'][1:]
+          expected = {
+              f'TicketsEditor-{version}-{platform}-{arch}.{extension}'
+              for platform, arch, extensions in [
+                  ('win', 'x64', ['exe']),
+                  ('linux', 'x64', ['AppImage', 'deb']),
+                  ('mac', 'x64', ['dmg', 'zip']),
+                  ('mac', 'arm64', ['dmg', 'zip']),
+              ]
+              for extension in extensions
+          }
+          folder = Path('release-assets')
+          actual = {file.name for file in folder.iterdir() if file.is_file()}
+          if expected != actual:
+              raise SystemExit(f'Release assets mismatch; missing={sorted(expected - actual)}; extra={sorted(actual - expected)}')
+          with (folder / 'SHA256SUMS.txt').open('w', encoding='utf-8') as checksums:
+              for name in sorted(expected):
+                  file = folder / name
+                  with file.open('rb') as contents:
+                      digest = hashlib.file_digest(contents, 'sha256').hexdigest()
+                  checksums.write(f'{digest}  {name}\n')
+          print(f'Validated {len(expected)} installers and created SHA256SUMS.txt')
+          PY
+      - name: Publish release only after every native build succeeds
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          args=()
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            args+=(--prerelease --latest=false)
+          fi
+          gh release create "$GITHUB_REF_NAME" release-assets/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --title "TicketsEditor $GITHUB_REF_NAME" \
+            --generate-notes \
+            ${args[@]}

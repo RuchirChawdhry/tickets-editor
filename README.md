@@ -147,7 +147,37 @@ See [MCP setup and tools](docs/mcp.md) for client configuration and the tool lis
 | `npm run format` | Format source files with Prettier |
 | `npm run build` | Build the Electron application and MCP server |
 
-GitHub Actions checks the source and builds on Ubuntu Slim. The workflow does not test a packaged desktop application.
+GitHub Actions runs source checks on pushes and pull requests. A separate **tagged release workflow** builds native packages on Windows, Ubuntu and macOS, then publishes a GitHub Release only when every build succeeds.
+
+### Publish a desktop release
+
+1. Update `package.json`'s `version` to the new version (for example `0.1.0`).
+2. Commit the changes to `main`, and ensure its CI checks pass.
+3. Create and push a matching version tag:
+
+```sh
+git checkout main
+git pull --ff-only
+git tag -a v0.1.0 -m "TicketsEditor 0.1.0"
+git push origin v0.1.0
+```
+
+**The tag must match the version in `package.json` exactly**, prefixed with `v`. A mismatched tag fails before packaging. Tags such as `v0.2.0-beta.1` publish as prereleases.
+
+The workflow at [`.github/workflows/release.yml`](.github/workflows/release.yml) creates:
+
+| Platform | Architecture | Packages |
+| --- | --- | --- |
+| Windows | x64 | NSIS `.exe` |
+| Ubuntu / Debian | x64 | `.AppImage` and `.deb` |
+| macOS | Intel x64 | `.dmg` and `.zip` |
+| macOS | Apple Silicon arm64 | `.dmg` and `.zip` |
+
+Each runner installs and builds its own native dependencies, including SQLite. All seven packages use unique platform/architecture filenames. GitHub Actions assembles the packages, checks that none are missing, creates `SHA256SUMS.txt`, and attaches everything to the GitHub Release with automatically generated release notes.
+
+**Signing:** These builds are currently **unsigned** and macOS builds are **not notarized**. Windows SmartScreen and macOS Gatekeeper may warn or block normal installation. Configure signing and Apple notarization before distributing to general users.
+
+The repository does not currently contain a `package-lock.json`, so CI uses `npm install`; commit a lockfile and switch to `npm ci` for fully reproducible dependency installation. The ordinary CI workflow does not test packaged apps, and the Windows GUI screenshot workflow remains manual.
 
 ## More information
 

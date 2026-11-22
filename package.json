@@ -2,6 +2,15 @@
   "name": "tickets-editor",
   "version": "0.1.0",
   "description": "Local-first multi-project ticket viewer and editor",
+  "author": {
+    "name": "Ruchir Chawdhry",
+    "email": "ruchir.github@outlook.com"
+  },
+  "homepage": "https://github.com/RuchirChawdhry/tickets-editor",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RuchirChawdhry/tickets-editor.git"
+  },
   "private": true,
   "main": "./out/main/index.js",
   "engines": {
