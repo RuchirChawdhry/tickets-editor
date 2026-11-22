@@ -35,9 +35,10 @@ export const commandIds = [
   'project.verifyLink',
 ] as const;
 
-export type CommandId = (typeof commandIds)[number];
+export type StaticCommandId = (typeof commandIds)[number];
+export type CommandId = StaticCommandId | `project.switch:${string}`;
 export type CommandHandler = () => void | Promise<void>;
-export type CommandHandlers = Record<CommandId, CommandHandler>;
+export type CommandHandlers = Record<StaticCommandId, CommandHandler>;
 
 export interface Command {
   id: CommandId;
@@ -209,15 +210,34 @@ const specs: CommandSpec[] = [
   },
 ];
 
+export interface ProjectChoice {
+  projectUuid: string;
+  name: string;
+}
+
 export function createCommands(
   context: CommandContext,
   handlers: CommandHandlers,
+  projects: ProjectChoice[] = [],
+  onSwitchProject?: (projectUuid: string) => void,
 ): Command[] {
-  return specs.map(({ available, ...spec }) => ({
+  const fixed = specs.map(({ available, ...spec }) => ({
     ...spec,
     enabled: available(context),
     run: handlers[spec.id],
   }));
+
+  const projectTabs: Command[] = projects.map((item) => ({
+    id: `project.switch:${item.projectUuid}`,
+    title: `Switch to ${item.name}`,
+    description: 'Open this project from the project library',
+    group: 'Workspace',
+    keywords: `switch project tab open ${item.name}`,
+    enabled: !context.busy && !!onSwitchProject,
+    run: () => onSwitchProject?.(item.projectUuid),
+  }));
+
+  return [...fixed, ...projectTabs];
 }
 
 function relevance(command: Command, terms: string[]): number {

@@ -615,7 +615,7 @@
     busy,
     selectionCount: selectedTicketIds.length,
     revisionCount: revisions.length,
-  }, handlers)
+  }, handlers, projects, (id) => { void selectProject(id) })
 
   function executeCommand(id: CommandId): void {
     runCommand(commands, id)
@@ -658,7 +658,7 @@
     <div class="brand"><span class="brand-icon">T</span>TicketsEditor</div>
     <div class="tabs">
       {#each projects as p (p.projectUuid)}
-        <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => void selectProject(p.projectUuid)}>▣ {p.name}</button>
+        <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => executeCommand(`project.switch:${p.projectUuid}`)}>▣ {p.name}</button>
       {/each}
       <button class="title-action" title="Register project" onclick={() => executeCommand('project.register')}>+</button>
     </div>

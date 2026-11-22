@@ -17,7 +17,7 @@
   let selectedIndex = 0;
   let didExecute = false;
 
-  $: matches = searchCommands(commands, query);
+  $: matches = searchCommands(commands, query).filter((command) => command.id !== 'palette.open');
 
   onMount(() => {
     const previousFocus = document.activeElement;
@@ -40,7 +40,8 @@
 
   function onQuery(event: Event): void {
     query = (event.currentTarget as HTMLInputElement).value;
-    const results = searchCommands(commands, query);
+    const results = searchCommands(commands, query)
+      .filter((command) => command.id !== 'palette.open');
     selectedIndex = results.findIndex((command) => command.enabled);
   }
 

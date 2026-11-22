@@ -22,7 +22,8 @@ const empty: CommandContext = {
 
 function setup(context: Partial<CommandContext> = {}) {
   const spy = vi.fn();
-  const handlers = Object.fromEntries(commandIds.map((id) => [id, spy])) as CommandHandlers;
+  const handlers = {} as CommandHandlers;
+  for (const id of commandIds) handlers[id] = spy;
   return { commands: createCommands({ ...empty, ...context }, handlers), spy };
 }
 
@@ -63,6 +64,34 @@ describe('shared command registry', () => {
     const selected = setup({ hasProject: true, selectionCount: 2 });
     expect(runCommand(noSelection.commands, 'ticket.duplicate')).toBe(false);
     expect(runCommand(selected.commands, 'ticket.duplicate')).toBe(true);
+  });
+
+  it('exposes project navigation through the same command dispatcher', () => {
+    const spy = vi.fn();
+    const handlers = {} as CommandHandlers;
+    for (const id of commandIds) handlers[id] = vi.fn();
+    const projects = [
+      { projectUuid: 'one', name: 'DLL Viewer' },
+      { projectUuid: 'two', name: 'Course Studio' },
+    ];
+    const commands = createCommands({ ...empty, hasProject: true }, handlers, projects, spy);
+    expect(searchCommands(commands, 'course studio')[0]?.id).toBe('project.switch:two');
+    expect(runCommand(commands, 'project.switch:one')).toBe(true);
+    expect(spy).toHaveBeenCalledWith('one');
+  });
+
+  it('disables project switching while busy', () => {
+    const spy = vi.fn();
+    const handlers = {} as CommandHandlers;
+    for (const id of commandIds) handlers[id] = vi.fn();
+    const commands = createCommands(
+      { ...empty, busy: true },
+      handlers,
+      [{ projectUuid: 'one', name: 'Test Project' }],
+      spy,
+    );
+    expect(runCommand(commands, 'project.switch:one')).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
   });
 
   it('supports a revision command only if a revision exists', () => {
