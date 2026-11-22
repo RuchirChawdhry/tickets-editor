@@ -1,6 +1,6 @@
 # TicketsEditor
 
-A Windows-first desktop workspace for reviewing and correcting agent-generated tickets across multiple projects.
+A cross-platform Electron desktop workspace for reviewing and correcting agent-generated tickets across multiple projects.
 
 ## Architecture
 
@@ -12,7 +12,7 @@ A Windows-first desktop workspace for reviewing and correcting agent-generated t
 
 ## Development
 
-Use **Node.js 24** and npm on Windows.
+Use **Node.js 24** and npm on Windows, Linux, or macOS.
 
 ```powershell
 npm install
@@ -34,3 +34,7 @@ npm run build
 The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, an initial humanized/JSON editing UI, AppData JSON files and user-selected hardlink/symlink setup. Full diff review, batch operations, auto file watching, repair, and advanced editors are still planned.
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
+
+## CI
+
+GitHub Actions uses only `.github/workflows/ci-workflows.yml` on the `ubuntu-slim` runner for headless typechecking, linting, tests and bundle builds. No Windows or macOS CI jobs are configured. Platform packaging is separate from CI verification.

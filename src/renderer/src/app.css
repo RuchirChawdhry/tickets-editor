@@ -66,3 +66,5 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
 .link-operations label{font-size:12px}
 .link-operations select{max-width:195px;padding:6px;background:#252b33;color:#e5ecf5;border:1px solid #4a5562;border-radius:4px}
 .link-operations button,.link-panel>button{padding:6px 9px;background:#343c46;color:#d6dfeb;border:1px solid #4a5562;border-radius:4px;font-size:12px}
+
+.project-dialog{position:relative;margin:0}

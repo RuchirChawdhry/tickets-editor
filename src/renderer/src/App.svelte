@@ -379,7 +379,7 @@
 
   {#if projectFormOpen}
     <div class="dialog-shade">
-      <section class="project-dialog" role="dialog" aria-modal="true" aria-label="Configure project">
+      <dialog class="project-dialog" open aria-label="Configure project">
         <h2>{editProjectUuid ? 'Edit project' : 'Register project'}</h2>
         <p>Choose the full path to an existing project directory.</p>
         <label for="project-name">Project name</label>
@@ -418,7 +418,7 @@
             {editProjectUuid ? 'Save changes' : 'Register project'}
           </button>
         </div>
-      </section>
+      </dialog>
     </div>
   {/if}
 

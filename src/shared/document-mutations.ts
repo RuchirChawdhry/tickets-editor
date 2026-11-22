@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import type { JsonPath, TicketObject } from './contracts'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -62,7 +61,7 @@ export function appendTicket(root: unknown, existingTicketPath: JsonPath | null)
 
 export function emptyTicket(): TicketObject {
   return {
-    id: 'ticket-' + randomUUID().slice(0, 8),
+    id: 'ticket-' + globalThis.crypto.randomUUID().slice(0, 8),
     task: 'New ticket',
     deps: [],
     work: [],

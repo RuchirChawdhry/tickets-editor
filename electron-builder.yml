@@ -10,3 +10,12 @@ asarUnpack:
 win:
   target:
     - nsis
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Utility
+mac:
+  target:
+    - dmg
+    - zip
