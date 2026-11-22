@@ -820,18 +820,18 @@
           </span>
         {/each}
       </div>
-      <button
-        bind:this={customizeToggle}
-        class="title-action titlebar-customize-trigger"
-        type="button"
-        data-titlebar-customize
-        aria-label="Customize title-bar commands"
-        aria-haspopup="dialog"
-        aria-expanded={titlebarCustomizeOpen}
-        title="Pin or reorder title-bar commands"
-        onclick={() => executeCommand('titlebar.customize')}
-      ><CommandIcon id="titlebar.customize" /></button>
     </div>
+    <button
+      bind:this={customizeToggle}
+      class="title-action titlebar-customize-trigger"
+      type="button"
+      data-titlebar-customize
+      aria-label="Customize title-bar commands"
+      aria-haspopup="dialog"
+      aria-expanded={titlebarCustomizeOpen}
+      title="Pin or reorder title-bar commands"
+      onclick={() => executeCommand('titlebar.customize')}
+    ><CommandIcon id="titlebar.customize" /></button>
     <div class="caption-reserved"></div>
     {#if titlebarCustomizeOpen}
       <TitlebarCustomize
@@ -1037,7 +1037,7 @@
     </aside>
 
     <section class="human-pane">
-      <div class="panel-heading">HUMANIZED EDITOR <span>{ticket() ? 'Ticket ' + ticket()?.number : 'Select ticket'}</span></div>
+      <div class="panel-heading">TICKET FIELDS <span>{ticket() ? 'Ticket ' + ticket()?.number : 'Select ticket'}</span></div>
       {#if ticket()}
         <div class="human-body">
           {#if parseError}
