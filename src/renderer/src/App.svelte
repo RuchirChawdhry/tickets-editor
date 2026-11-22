@@ -17,6 +17,10 @@
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
+  import {
+    appendTicketListItem, convertTicketScalarToList, editTicketListItem,
+    editTicketScalar, readTicketField, removeTicketListItem
+  } from '../../shared/ticket-fields'
   import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
 
   let projects: ProjectRecord[] = []
@@ -86,10 +90,6 @@
     return typeof draft[key] === 'string' ? draft[key] as string : ''
   }
 
-  function listValue(key: string): string[] {
-    return Array.isArray(draft[key]) ? (draft[key] as unknown[]).map(String) : []
-  }
-
   function changeDraft(next: TicketObject): void {
     // Never overwrite malformed JSON from a form edit. The user must first
     // correct the raw text in CodeMirror, where the last valid draft survives.
@@ -103,18 +103,24 @@
     changeDraft({ ...draft, [key]: value })
   }
 
+  function changeScalar(key: string, value: string): void {
+    changeDraft(editTicketScalar(draft, key, value))
+  }
+
   function changeItem(key: string, index: number, value: string): void {
-    const values = listValue(key)
-    values[index] = value
-    changeDraft({ ...draft, [key]: values })
+    changeDraft(editTicketListItem(draft, key, index, value))
   }
 
   function appendItem(key: string): void {
-    changeDraft({ ...draft, [key]: [...listValue(key), ''] })
+    changeDraft(appendTicketListItem(draft, key))
   }
 
   function removeItem(key: string, index: number): void {
-    changeDraft({ ...draft, [key]: listValue(key).filter((_, i) => i !== index) })
+    changeDraft(removeTicketListItem(draft, key, index))
+  }
+
+  function convertToList(key: string): void {
+    changeDraft(convertTicketScalarToList(draft, key))
   }
 
   function changeJson(value: string): void {
@@ -1207,17 +1213,30 @@
           <label for="ticket-task">Task</label>
           <textarea id="ticket-task" rows="3" disabled={!!parseError} value={textValue('task')} oninput={e => changeText('task', e.currentTarget.value)}></textarea>
           {#each ['deps', 'work', 'tests', 'success_criteria'] as field (field)}
+            {@const fieldView = readTicketField(draft, field)}
             <div class="section-header">
-              <h3>{field === 'success_criteria' ? 'Success Criteria (required)' : field === 'deps' ? 'Dependencies' : field === 'work' ? 'Work' : 'Tests'}</h3>
-              <button disabled={!!parseError} onclick={() => appendItem(field)}>+ Add</button>
+              <h3>{field === 'success_criteria' ? 'Success Criteria' : field === 'deps' ? 'Dependencies' : field === 'work' ? 'Work' : 'Tests'}</h3>
+              {#if fieldView.kind === 'scalar'}
+                <button disabled={!!parseError} title="Convert this string to an editable list" onclick={() => convertToList(field)}>Convert to list</button>
+              {:else if fieldView.kind === 'list' || fieldView.kind === 'missing'}
+                <button disabled={!!parseError} onclick={() => appendItem(field)}>+ Add</button>
+              {/if}
             </div>
-            {#each listValue(field) as item, i (i)}
+            {#if fieldView.kind === 'scalar'}
               <div class="list-row">
-                <span>{i + 1}.</span>
-                <textarea rows="2" disabled={!!parseError} value={item} oninput={e => changeItem(field, i, e.currentTarget.value)}></textarea>
-                <button disabled={!!parseError} title="Remove item" aria-label="Remove item" onclick={() => removeItem(field, i)}>×</button>
+                <textarea rows="2" aria-label={field + ' text'} disabled={!!parseError} value={fieldView.value} oninput={e => changeScalar(field, e.currentTarget.value)}></textarea>
               </div>
-            {/each}
+            {:else if fieldView.kind === 'list'}
+              {#each fieldView.values as item, i (i)}
+                <div class="list-row">
+                  <span>{i + 1}.</span>
+                  <textarea rows="2" aria-label={field + ' item ' + (i + 1)} disabled={!!parseError} value={item} oninput={e => changeItem(field, i, e.currentTarget.value)}></textarea>
+                  <button disabled={!!parseError} title="Remove item" aria-label="Remove item" onclick={() => removeItem(field, i)}>×</button>
+                </div>
+              {/each}
+            {:else if fieldView.kind === 'unsupported'}
+              <p class="field-warning">{field} contains a non-text JSON value. Edit it in the JSON pane; its original value is preserved.</p>
+            {/if}
           {/each}
           {#if !validateTicket(draft).valid}
             <div class="validation-warning">

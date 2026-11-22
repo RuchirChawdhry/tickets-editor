@@ -57,6 +57,7 @@ input:focus,textarea:focus{border-color:#719acc}
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-top:13px}
 .section-header h3{font-size:var(--type-base);font-weight:600;margin:0}.list-row{display:flex;gap:7px;align-items:flex-start}
 .list-row textarea{flex:1;resize:vertical;min-width:0;font-size:var(--type-sm)}
+.field-warning{font-size:var(--type-sm);color:#dbad73;margin:2px 0 6px;line-height:1.45}
 .list-row span{font-size:var(--type-sm);color:#8996a6;min-width:20px;padding-top:8px}
 .list-row button{background:transparent;border:0;color:#acbac9;font-size:20px}
 .editor-controls{display:flex;gap:8px;margin-top:11px}

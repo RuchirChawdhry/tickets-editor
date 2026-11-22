@@ -65,7 +65,6 @@ export function emptyTicket(): TicketObject {
     task: 'New ticket',
     deps: [],
     work: [],
-    tests: [],
-    success_criteria: []
+    tests: []
   }
 }

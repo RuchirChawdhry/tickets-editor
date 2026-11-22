@@ -21,7 +21,7 @@ describe('nested document edits', () => {
     const root = { phases: [{ tickets: [{ id: 'a', task: 'First' }] }] }
     appendTicket(root, ['phases', 0, 'tickets', 0])
     expect(root.phases[0].tickets).toHaveLength(2)
-    expect(root.phases[0].tickets[1]).toHaveProperty('success_criteria', [])
+    expect(root.phases[0].tickets[1]).not.toHaveProperty('success_criteria')
     expect(root).not.toHaveProperty('tickets')
   })
 

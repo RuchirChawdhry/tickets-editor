@@ -14,8 +14,8 @@ concurrency:
 
 jobs:
   verify:
-    name: Cross-platform source checks (Ubuntu Slim)
-    runs-on: ubuntu-slim
+    name: Cross-platform source checks (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -34,7 +34,9 @@ jobs:
         run: npm run typecheck
       - name: Lint
         run: npm run lint
-      - name: Unit tests
+      - name: Rebuild native SQLite dependency for Node.js unit tests
+        run: npm rebuild better-sqlite3 --no-audit --no-fund
+      - name: Unit tests and SQLite round trips
         run: npm test
       - name: Build application bundles
         run: npm run build
