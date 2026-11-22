@@ -1424,7 +1424,7 @@
             <button onclick={() => executeCommand('project.export')}>Save project…</button>
           </div>
         </div>
-        <div class="ticket-list" oncontextmenu={listContextMenu}>
+        <div class="ticket-list" role="group" aria-label="Ticket list" oncontextmenu={listContextMenu}>
           {#each visibleTickets() as item (item.ticketUuid)}
             <button class:active={item.ticketUuid === ticketUuid} class:selected={selectedTicketIds.includes(item.ticketUuid)} class="ticket-card" onclick={event => selectTicket(event, item)} oncontextmenu={event => ticketContextMenu(event, item)}>
               <span class="ticket-card-top">
