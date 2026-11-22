@@ -25,7 +25,7 @@
     "mcp": "npm run build && electron . --mcp",
     "lint:fast": "oxlint .",
     "lint:all": "npm run lint:fast && npm run lint",
-    "test:visual:windows": "node --test tests/visual/windows-titlebar.test.cjs"
+    "test:visual:windows": "node --test tests/visual/windows-titlebar.visual.cjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.0.0",
