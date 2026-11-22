@@ -67,13 +67,13 @@ export function createProjectLink(
     if (verifyFileLink(target, canonical, mode)) return
     throw new Error('Existing .tickets file is not the configured link. Import or reconcile it before proceeding.')
   }
-  if (mode === 'hardlink' && statSync(dirname(target)).dev !== statSync(canonical).dev) {
-    throw new Error('Hardlinks require AppData and the project directory to be on the same volume. Choose a symbolic link.')
-  }
   try {
     if (mode === 'hardlink') linkSync(canonical, target)
     else symlinkSync(resolve(canonical), target, 'file')
   } catch (error) {
+    if (mode === 'hardlink' && (error as NodeJS.ErrnoException).code === 'EXDEV') {
+      throw new Error('Hardlinks require AppData and the project directory to be on the same volume. Choose a symbolic link.')
+    }
     if (mode === 'symlink' && (error as NodeJS.ErrnoException).code === 'EPERM') {
       throw new Error('Windows denied symbolic link creation. Enable Developer Mode or run with the required privileges.')
     }
