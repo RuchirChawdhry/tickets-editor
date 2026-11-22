@@ -74,4 +74,12 @@ jobs:
           git add package.json package-lock.json
           git diff --cached --exit-code && { echo 'No changes required'; exit 0; }
           git commit -m 'build(deps): upgrade minimatch 9.x/10.x branches to 11.0.9'
-          git push origin HEAD:main
+          # Concurrent commits may land on main while npm resolves dependencies.
+          # Rebase without force-pushing and retry if main advances again.
+          for attempt in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main
+            if git push origin HEAD:main; then exit 0; fi
+          done
+          echo 'main continued to advance; refusing to force push'
+          exit 1
