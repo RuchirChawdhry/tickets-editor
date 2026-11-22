@@ -11,7 +11,7 @@ import electronPath from 'electron';
 const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(sourceDirectory, '../..');
 const output = path.join(root, 'artifacts', 'windows-visual');
-const nativeCapture = path.join(sourceDirectory, 'capture-native-window.ps1');
+const fixtures = path.join(root, 'tests', 'fixtures');
 const pinStorageKey = 'tickets-editor.titlebar.pins.v1';
 const densePins = [
   'project.search', 'palette.open', 'ticket.save', 'project.import',
@@ -61,13 +61,16 @@ async function screenshot(application, page, name) {
       ? buffer.readBigUInt64LE(0)
       : BigInt(buffer.readUInt32LE(0))).toString();
   });
-  execFileSync('powershell.exe', [
-    '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-    '-File', nativeCapture,
-    '-WindowHandle', handle,
-    '-OutputPath', path.join(output, name + '-window.png'),
-  ], { cwd: root, timeout: 20000 });
-  log(name + ': renderer and native window captured');
+  const pngPath = path.join(output, name + '-window.png');
+  // WGC captures the HWND's own DWM surface, not the background desktop.
+  // Do not use --capture-screen: it includes desktop overlays and occlusions.
+  const result = execFileSync('winapp', [
+    'ui', 'screenshot', '-w', handle,
+    '--output', pngPath,
+  ], { cwd: root, timeout: 30000, encoding: 'utf8' });
+  assert.ok(fs.statSync(pngPath).size > 1000, 'WinApp CLI PNG is missing or empty');
+  log(name + ': Playwright renderer + WinApp CLI HWND screenshot (' +
+    String(result).trim() + ')');
 }
 
 async function checkGeometry(page) {
@@ -75,18 +78,70 @@ async function checkGeometry(page) {
     const bar = document.querySelector('.titlebar').getBoundingClientRect();
     const controls = document.querySelector('.title-actions').getBoundingClientRect();
     const native = document.querySelector('.caption-reserved').getBoundingClientRect();
+    const settingsElement = document.querySelector('.titlebar-customize-trigger');
+    const settings = settingsElement.getBoundingClientRect();
+    const borders = getComputedStyle(settingsElement);
     return {
       height: Math.round(bar.height),
       reserved: Math.round(native.width),
       controlsRight: Math.round(controls.right),
+      settingsLeft: Math.round(settings.left),
+      settingsRight: Math.round(settings.right),
+      settingsWidth: Math.round(settings.width),
+      settingsBorderLeft: borders.borderLeftWidth,
+      settingsBorderRight: borders.borderRightWidth,
       reservedLeft: Math.round(native.left),
+      brandText: document.querySelector('.brand').textContent.trim(),
+      baseFont: getComputedStyle(document.documentElement).fontSize,
     };
   });
   assert.equal(rect.height, 42, 'Title bar must remain 42px high');
   assert.equal(rect.reserved, 140, 'Windows caption reservation must remain 140px');
-  assert.ok(rect.controlsRight <= rect.reservedLeft + 1,
-    'Pinned commands must not overlap caption controls');
+  assert.equal(rect.settingsWidth, 42, 'Settings is an independent 42px slot');
+  assert.equal(rect.settingsRight, rect.reservedLeft,
+    'Settings must touch the Windows caption-control reservation');
+  assert.equal(rect.controlsRight, rect.settingsLeft,
+    'Pinned commands must end immediately before settings');
+  assert.equal(rect.settingsBorderLeft, '1px');
+  assert.equal(rect.settingsBorderRight, '1px');
+  assert.equal(rect.brandText, 'T', 'Only the brand icon belongs in the title bar');
+  assert.equal(rect.baseFont, '14px', 'App typography must use the 14px base');
   log('Title bar geometry: ' + JSON.stringify(rect));
+}
+
+async function registerSample(page, projectName, rootPath) {
+  await page.locator('.tabs .title-action').click();
+  await page.locator('#project-name').fill(projectName);
+  await page.locator('#project-path').fill(rootPath);
+  await page.locator('.project-dialog .dialog-actions .primary').click();
+  await page.locator('.tab.active').filter({ hasText: projectName })
+    .waitFor({ state: 'visible' });
+}
+
+async function importSample(application, page, filename) {
+  const pathToFixture = path.join(fixtures, filename);
+  // Replace only the file-picker implementation inside this isolated test
+  // process. The renderer still calls its normal import action and SQLite IPC.
+  await application.evaluate(({ dialog }, filePath) => {
+    dialog.showOpenDialog = async () => ({
+      canceled: false, filePaths: [filePath],
+    });
+  }, pathToFixture);
+  await page.locator('.navigator-controls button')
+    .filter({ hasText: 'Import JSON/JSONL' }).click();
+  await page.waitForFunction(() =>
+    document.querySelectorAll('.ticket-card').length === 16,
+  );
+  const records = await page.evaluate(async () => {
+    const projects = await window.ticketsEditor.listProjects();
+    const activeTab = document.querySelector('.tab.active').textContent.trim();
+    const project = projects.find(item => activeTab.includes(item.name));
+    return project ? window.ticketsEditor.listTickets(project.projectUuid) : [];
+  });
+  assert.equal(records.length, 16, filename + ' did not import 16 tickets');
+  assert.ok(records.every(item => item.validation.valid),
+    filename + ' contains invalid tickets');
+  log(filename + ': imported 16 valid tickets');
 }
 
 test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
@@ -107,21 +162,35 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     assert.equal(await page.locator('.title-pinned-action').count(), 5);
     await screenshot(application, page, '01-default-titlebar');
 
-    await page.locator('.tabs .title-action').click();
-    await page.locator('#project-name').fill('Windows Visual QA');
-    await page.locator('#project-path').fill(project);
-    await page.locator('.project-dialog .dialog-actions .primary').click();
-    await page.locator('.tab.active').filter({ hasText: 'Windows Visual QA' })
-      .waitFor({ state: 'visible' });
-    await page.locator('.title-pinned-action[aria-label="New ticket"]').click();
+    await registerSample(page, 'A — JSONL Tickets', project);
+    await importSample(application, page, 'sample-tickets.jsonl');
+    await screenshot(application, page, '02-jsonl-populated');
+
+    const nestedProject = path.join(temp, 'NestedProject');
+    fs.mkdirSync(nestedProject, { recursive: true });
+    await registerSample(page, 'B — Nested JSON Tickets', nestedProject);
+    await importSample(application, page, 'nested-tickets.json');
+    const nestedProjectRecord = await page.evaluate(async () => {
+      return (await window.ticketsEditor.listProjects())
+        .find(item => item.name === 'B — Nested JSON Tickets');
+    });
+    const nestedDoc = await page.evaluate(
+      id => window.ticketsEditor.getProjectDocument(id),
+      nestedProjectRecord.projectUuid,
+    );
+    assert.equal(nestedDoc.sourceFormat, 'json');
+    assert.equal(nestedDoc.document.project.milestones.length, 3);
+    await screenshot(application, page, '03-nested-json-populated');
+
+    // Use an existing fixture ticket for an actual editor save interaction.
     await page.locator('#ticket-task').fill('Verify the native Windows title bar');
     await page.locator('.title-pinned-action[aria-label="Save ticket"]').click();
     await page.locator('.unsaved').waitFor({ state: 'detached' });
-    await screenshot(application, page, '02-project-and-editor');
+    await screenshot(application, page, '04-edited-nested-ticket');
 
     await page.getByRole('button', { name: 'Customize title-bar commands' }).click();
     await page.locator('.titlebar-customizer').waitFor({ state: 'visible' });
-    await screenshot(application, page, '03-customizer');
+    await screenshot(application, page, '05-customizer');
     await page.locator('.titlebar-customize-search').fill('Format ticket JSON');
     await page.getByRole('button', { name: 'Pin Format ticket JSON' }).click();
     await page.locator('.title-pinned-action[aria-label="Format ticket JSON"]')
@@ -129,7 +198,7 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     await page.getByRole('button', { name: 'Move Format ticket JSON left' }).click();
     await page.getByRole('button', { name: 'Close title-bar customization' }).click();
     assert.equal(await page.locator('.title-pinned-action').count(), 6);
-    await screenshot(application, page, '04-customized-titlebar');
+    await screenshot(application, page, '06-customized-titlebar');
 
     // Load a dense preference to check horizontal overflow and safe caption space.
     await page.evaluate(({ key, pins }) => {
@@ -139,11 +208,11 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     await page.locator('.title-pinned-action').first().waitFor();
     assert.equal(await page.locator('.title-pinned-action').count(), densePins.length);
     await checkGeometry(page);
-    await screenshot(application, page, '05-fifteen-pinned-commands');
+    await screenshot(application, page, '07-fifteen-pinned-commands');
 
     await page.keyboard.press('Control+Shift+P');
     await page.locator('.command-palette').waitFor({ state: 'visible' });
-    await screenshot(application, page, '06-command-palette');
+    await screenshot(application, page, '08-command-palette');
     await page.keyboard.press('Escape');
     await page.locator('.command-palette').waitFor({ state: 'detached' });
 
@@ -154,8 +223,10 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     await page.locator('.title-pinned-action').first().waitFor();
     assert.equal(await page.locator('.title-pinned-action').count(), densePins.length);
     await checkGeometry(page);
-    await screenshot(application, page, '07-after-restart');
-    log('PASS: Windows Electron title-bar review');
+    assert.equal(await page.locator('.ticket-card').count(), 16,
+      'Populated ticket navigator must survive an app restart');
+    await screenshot(application, page, '09-after-restart');
+    log('PASS: WinApp CLI HWND captures, icon-only title bar, readable typography, JSONL + nested JSON fixtures');
   } catch (error) {
     log('FAIL: ' + String(error?.stack || error));
     if (session) {
