@@ -69,7 +69,7 @@ export function getProjectLinkStatus(db: WorkspaceDatabase, userData: string, pr
   const { row, canonical, projectFile } = paths(db, userData, projectUuid)
   const basics = { projectUuid, mode: row.link_type, canonicalPath: canonical, projectFilePath: projectFile }
   if (!fileExists(canonical)) return {
-    ...basics, health: 'broken', details: 'Application-data tickets.json is missing. Recover it from SQLite before editing.'
+    ...basics, health: 'broken', details: 'AppData tickets.json is missing. Recover it from SQLite before editing.'
   }
   const linked = !row.link_type || verifyFileLink(projectFile, canonical, row.link_type)
   if (!linked) return {
@@ -86,12 +86,12 @@ export function getProjectLinkStatus(db: WorkspaceDatabase, userData: string, pr
     ...basics, health: 'conflict', details: 'SQLite contains changes not written to tickets.json. Retry synchronization.'
   }
   if (previous && fileHash !== previous) return {
-    ...basics, health: 'changed', details: 'External changes detected in tickets.json. Import them before editing.'
+    ...basics, health: 'changed', details: 'External edits detected in tickets.json. Import them before editing.'
   }
   return {
     ...basics,
     health: row.link_type ? 'linked' : 'unconfigured',
-    details: row.link_type ? 'The .tickets link is healthy and synchronized.' : 'The application-data JSON is synchronized. No project link configured.'
+    details: row.link_type ? 'The .tickets link is healthy and synchronized.' : 'The AppData JSON is synchronized. No project link configured.'
   }
 }
 
@@ -177,7 +177,7 @@ export function importExternalProjectFile(
   const { canonical, projectFile, row } = paths(db, userData, projectUuid)
   const state = getProjectLinkStatus(db, userData, projectUuid)
   if (source === 'canonical' && state.health !== 'changed' && state.health !== 'conflict') {
-    throw new Error('No external application-data JSON changes to import')
+    throw new Error('No external AppData JSON changes to import')
   }
   if (source === 'detached' && (state.health !== 'broken' || !fileExists(projectFile))) {
     throw new Error('No detached .tickets file to import')
@@ -216,7 +216,7 @@ export function repairProjectLink(db: WorkspaceDatabase, userData: string, proje
   if (!row.link_type) throw new Error('Project link not configured. Use Set Up Link.')
   const state = getProjectLinkStatus(db, userData, projectUuid)
   if (state.health !== 'broken') throw new Error('Link is not broken')
-  if (!fileExists(canonical)) throw new Error('Recover the canonical application-data JSON before repairing the link')
+  if (!fileExists(canonical)) throw new Error('Recover the canonical AppData JSON before repairing the link')
   if (sha256(readFileSync(canonical, 'utf8')) !== sha256(row.document_json)) {
     throw new Error('Canonical JSON and SQLite differ. Resolve the conflict first.')
   }

@@ -6,7 +6,7 @@ TicketsEditor is a cross-platform, local-first, batch-oriented editor for fixing
 
 ### Presentation contract
 
-- On Windows, macOS, and Linux, the window has the same integrated, flat, Borumi-like title bar with project tabs, pinned commands, and draggable empty space. Electron supplies platform-native caption controls within that bar.
+- On Windows, the window has an integrated, flat, Borumi-like title bar with document tabs, pinned command icons, a customization plus button, draggable empty space, and native Windows caption controls. Electron uses titleBarStyle hidden plus titleBarOverlay.
 - Each **tab** represents an open project/document/collection; it does not represent an individual ticket.
 - Each project document has a ticket navigator, a humanized editable pane on the left, and a comfortably **pretty-printed** JSON editor on the right.
 - Navigator cards display **Ticket 1**, **Ticket 2**, etc. as the main heading. Display the actual ID in muted, smaller text at the bottom-right, e.g. **ID: <dll-004>**. Filtering must not renumber cards.
@@ -21,9 +21,9 @@ TicketsEditor is a cross-platform, local-first, batch-oriented editor for fixing
 3. **Svelte renderer** owns UI state, tabs, editors, navigation, selection, and commands. It cannot access Node.js, SQLite, or the filesystem directly.
 4. **Shared TypeScript** contains document parsing, JSON path identification, and ticket validation, independent of Electron.
 5. **SQLite** holds the complete searchable library of projects and individual tickets.
-6. **Canonical user-data JSON files** are exposed by a user-selected hardlink or symlink at each project's `.tickets` path.
+6. **Canonical AppData JSON files** are exposed to agents by a user-selected hardlink/symlink at each project's `.tickets` path.
 
-The active SQLite database lives in Electron's userData path as tickets-editor.sqlite. The per-project JSON files are not SQLite databases.
+The active SQLite database lives in Electron's userData path as tickets-editor.sqlite. The project files and managed backing files are not SQLite databases.
 
 ## Storage model
 
@@ -49,7 +49,7 @@ Document identity is not ticket identity. A display number is based on document 
 - Editing a human field or a valid JSON buffer updates the same in-memory ticket draft. Saving persists the full ticket payload at its indexed JSON path; CodeMirror targeted patching is planned.
 - Retain invalid text locally in the raw editor until it parses; report exact errors.
 - Revision history records accepted project-document snapshots. Users can explicitly restore a revision. Fine-grained undo/redo remains planned.
-- SQLite is the central indexed library. The project `.tickets` is a linked JSON projection.
+- SQLite is the central indexed library. The project .tickets file is a portable interchange format.
 - External edits are detected via file-hash checks and filesystem events as a recovery safeguard. Users can explicitly reconcile unexpected edits; automatic three-way merging is not planned. Agents will use the future MCP interface for structured writes rather than editing the linked JSON directly.
 - A file hash is checked before writing to avoid silently overwriting external edits. A partial write or crash can leave divergence; explicit recovery is available but fully transactional cross-store commits remain planned.
 
@@ -65,7 +65,7 @@ Menu items, title-bar pinned commands, keyboard shortcuts, ticket context menus,
 
 ## Platform coverage
 
-Node filesystem and SQLite operations must work on Windows, Linux and macOS. The integrated title bar is shared by all desktop platforms; Electron supplies native window buttons. The project `.tickets` links to a file under Electron's `app.getPath('userData')` on every supported platform. GitHub CI currently runs **only on `ubuntu-slim`** without launching a GUI or packaging installers; this is not a claim of Windows/macOS runtime test coverage.
+Node filesystem and SQLite operations must work on Windows, Linux and macOS. Native window-frame behavior is Windows-specific; use native platform decorations elsewhere. The project `.tickets` is linked to the app's per-user data directory, named AppData on Windows and resolved with Electron `app.getPath('userData')` on all supported platforms. GitHub CI currently runs **only on `ubuntu-slim`** without launching a GUI or packaging installers; this is not a claim of Windows/macOS runtime test coverage.
 
 ## Revision diff viewer
 
@@ -78,23 +78,3 @@ SQLite is the sole authoritative ticket store. AppData `tickets.json` is a synch
 ## MCP agent interface
 
 The renderer and agent-facing MCP use the same `TicketWorkspace` service for ticket CRUD and batch changes. Its SQLite immediate transaction serializes application writes across processes and verifies the JSON projection before mutation. The dedicated MCP ESM module loads in Electron main-process `--mcp` mode without a GUI; it shares Electron's SQLite native runtime. Only registered projects are exposed. Agent writes do not touch `.tickets` directly. Read-only MCP calls do not write SQLite.
-
-## Host-platform integration
-
-The application uses the same 42-pixel integrated renderer title bar on Windows, macOS, and Linux.
-Electron uses `titleBarStyle: 'hidden'` on all three systems. Windows and Linux enable the
-Window Controls Overlay; the renderer uses the overlay's safe-area CSS environment variables
-to keep tabs and commands clear of OS window controls. macOS keeps its traffic-light buttons
-at the upper left, so the title bar reserves space there. The native macOS application menu
-remains available.
-
-The preload bridge reports the desktop platform to the renderer. Shared platform helpers select
-window chrome and keyboard shortcut labels. The editor, ticket service, SQLite storage, JSON
-projection, and MCP protocol do not depend on these window differences.
-
-File-link failures use operating-system error codes. Cross-filesystem hardlink errors, link
-permission failures, and read-only filesystem errors receive platform-appropriate messages.
-On macOS, a Dock activation event must not open a window for a headless `--mcp` process.
-
-Ubuntu Slim runs platform-policy tests with simulated Windows, macOS, and Linux values. These
-tests do not replace native desktop or packaging tests on those operating systems.

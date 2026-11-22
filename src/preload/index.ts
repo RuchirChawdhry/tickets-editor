@@ -1,6 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { BatchOperation } from '../shared/batch-operations'
-import { desktopPlatform } from '../shared/desktop-platform'
 import type {
   ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus, RevisionRecord, TicketExportFormat,
   ProjectRecord, TicketObject, TicketRecord, TicketsEditorBridge, WorkspaceSummary,
@@ -8,7 +7,6 @@ import type {
 } from '../shared/contracts'
 
 const bridge: TicketsEditorBridge = {
-  platform: desktopPlatform(process.platform),
   getVersion: () => ipcRenderer.invoke('app:version') as Promise<string>,
   getSummary: () => ipcRenderer.invoke('workspace:summary') as Promise<WorkspaceSummary>,
   listProjects: () => ipcRenderer.invoke('projects:list') as Promise<ProjectRecord[]>,

@@ -5,7 +5,6 @@ export type JsonPath = Array<string | number>
 export type TicketObject = Record<string, unknown>
 export type TicketExportFormat = 'compact' | 'pretty' | 'jsonl'
 import type { BatchOperation } from './batch-operations'
-import type { DesktopPlatform } from './desktop-platform'
 
 export interface TicketLocation {
   number: number
@@ -79,7 +78,6 @@ export interface RevisionRecord {
 }
 
 export interface TicketsEditorBridge {
-  platform: DesktopPlatform
   getVersion(): Promise<string>
   getSummary(): Promise<WorkspaceSummary>
   listProjects(): Promise<ProjectRecord[]>

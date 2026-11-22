@@ -18,7 +18,6 @@ import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat, Revision
 import { loadRevisionSnapshot } from './revision-snapshots'
 import type { BatchOperation } from '../shared/batch-operations'
 import { TicketWorkspace } from './ticket-workspace'
-import { nativeApplicationMenu, windowChrome } from '../shared/desktop-platform'
 
 let database: WorkspaceDatabase | undefined
 let workspace: TicketWorkspace | undefined
@@ -63,6 +62,7 @@ function ticketService(): TicketWorkspace {
 }
 
 function createWindow(): void {
+  const onWindows = process.platform === 'win32'
   mainWindow = new BrowserWindow({
     width: 1360,
     height: 840,
@@ -70,7 +70,8 @@ function createWindow(): void {
     minHeight: 570,
     backgroundColor: '#20242a',
     title: 'TicketsEditor',
-    ...windowChrome(process.platform),
+    titleBarStyle: onWindows ? 'hidden' : 'default',
+    titleBarOverlay: onWindows ? { color: '#20242a', symbolColor: '#f3f4f6', height: 42 } : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
@@ -78,6 +79,7 @@ function createWindow(): void {
       sandbox: true
     }
   })
+  Menu.setApplicationMenu(null)
   mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   mainWindow.webContents.on('will-navigate', event => event.preventDefault())
   if (process.env.ELECTRON_RENDERER_URL) {
@@ -87,22 +89,6 @@ function createWindow(): void {
   }
   mainWindow.on('focus', () => mainWindow?.webContents.send('projects:link-changed'))
   mainWindow.on('closed', () => { mainWindow = undefined })
-}
-
-function configureApplicationMenu(): void {
-  if (nativeApplicationMenu(process.platform)) {
-    // Use Electron's native application, Edit, View and Window menus on macOS.
-    Menu.setApplicationMenu(Menu.buildFromTemplate([
-      { role: 'appMenu' },
-      { role: 'editMenu' },
-      { role: 'viewMenu' },
-      { role: 'windowMenu' },
-    ]));
-  } else {
-    // Windows uses the integrated title bar. Linux uses native decorations
-    // and the in-window application toolbar.
-    Menu.setApplicationMenu(null);
-  }
 }
 
 function registerHandlers(): void {
@@ -265,7 +251,7 @@ function registerHandlers(): void {
       type: 'warning',
       buttons: ['Cancel', 'Import external JSON'], defaultId: 0, cancelId: 0,
       message: 'Replace the SQLite document with external tickets?',
-      detail: 'Both versions will be saved to application-data recovery snapshots before import.'
+      detail: 'Both versions will be saved to AppData recovery snapshots before import.'
     })
     if (choice.response !== 1) return false
     importExternalProjectFile(db, app.getPath('userData'), id, source)
@@ -276,8 +262,8 @@ function registerHandlers(): void {
     const choice = await dialog.showMessageBox(mainWindow!, {
       type: 'warning',
       buttons: ['Cancel', 'Use SQLite version'], defaultId: 0, cancelId: 0,
-      message: 'Restore the application-data JSON from SQLite?',
-      detail: 'Existing JSON and the SQLite state are backed up in the application-data recovery folder.'
+      message: 'Restore AppData JSON from SQLite?',
+      detail: 'Existing JSON and the SQLite state are backed up in AppData/recovery first.'
     })
     if (choice.response !== 1) return false
     recoverCanonicalFromSqlite(db, app.getPath('userData'), id)
@@ -289,7 +275,7 @@ function registerHandlers(): void {
       type: 'warning',
       buttons: ['Cancel', 'Back up and repair'], defaultId: 0, cancelId: 0,
       message: 'Repair the project .tickets link?',
-      detail: 'If .tickets has become a separate file, its contents will be backed up in the application-data recovery folder before relinking.'
+      detail: 'If .tickets has become a separate file, its contents will be backed up to AppData/recovery before replacing the path with a verified link.'
     })
     if (choice.response !== 1) return null
     return repairProjectLink(db, app.getPath('userData'), id)
@@ -314,7 +300,6 @@ app.whenReady().then(() => {
       })
       process.stdin.on('end', () => app.quit())
     } else {
-      configureApplicationMenu()
       registerHandlers()
       createWindow()
       refreshLinkWatchers()
@@ -330,7 +315,7 @@ app.whenReady().then(() => {
   app.quit()
 })
 app.on('activate', () => {
-  if (!mcpMode && BrowserWindow.getAllWindows().length === 0 && database) createWindow()
+  if (BrowserWindow.getAllWindows().length === 0 && database) createWindow()
 })
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
