@@ -1,16 +1,17 @@
-'use strict';
+import assert from 'node:assert/strict';
+import { test } from 'node:test';
+import { execFileSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { _electron as electron } from 'playwright';
+import electronPath from 'electron';
 
-const assert = require('node:assert/strict');
-const { test } = require('node:test');
-const { execFileSync } = require('node:child_process');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { _electron: electron } = require('playwright');
-
-const root = path.resolve(__dirname, '../..');
+const sourceDirectory = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(sourceDirectory, '../..');
 const output = path.join(root, 'artifacts', 'windows-visual');
-const nativeCapture = path.join(__dirname, 'capture-native-window.ps1');
+const nativeCapture = path.join(sourceDirectory, 'capture-native-window.ps1');
 const pinStorageKey = 'tickets-editor.titlebar.pins.v1';
 const densePins = [
   'project.search', 'palette.open', 'ticket.save', 'project.import',
@@ -29,7 +30,7 @@ async function launch(appData) {
   delete env.ELECTRON_RUN_AS_NODE;
   delete env.ELECTRON_RENDERER_URL;
   const application = await electron.launch({
-    executablePath: require('electron'), args: [root], cwd: root,
+    executablePath: electronPath, args: [root], cwd: root,
     env, timeout: 45000,
   });
   const page = await application.firstWindow();
