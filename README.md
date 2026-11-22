@@ -25,7 +25,7 @@ npm install
 npm run dev
 ```
 
-The application uses Electron, Svelte, TypeScript, and SQLite. Windows uses an integrated title bar; macOS and Linux use native window decorations.
+The application uses Electron, Svelte, TypeScript, and SQLite. The integrated title bar works on Windows, macOS, and Linux. Electron provides each system's window controls.
 
 ## Create or open a project
 

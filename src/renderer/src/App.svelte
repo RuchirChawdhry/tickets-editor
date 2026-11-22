@@ -601,9 +601,6 @@
       <button class="title-action" title="Import JSON/JSONL" disabled={!projectUuid || busy} onclick={() => void importTickets()}>⇩</button>
       <button class="title-action" title="New ticket" disabled={!projectUuid || busy} onclick={() => void createTicket()}>+</button>
     </div>
-    {#if platform === 'win32'}
-      <div class="caption-reserved"></div>
-    {/if}
   </header>
 
   <div class="subbar">

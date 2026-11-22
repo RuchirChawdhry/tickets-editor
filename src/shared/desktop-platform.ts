@@ -10,7 +10,7 @@ export function desktopPlatform(value: string): DesktopPlatform {
 }
 
 export interface WindowChrome {
-  titleBarStyle: 'hidden' | 'default';
+  titleBarStyle: 'hidden';
   titleBarOverlay?: {
     color: string;
     symbolColor: string;
@@ -19,19 +19,20 @@ export interface WindowChrome {
 }
 
 export function windowChrome(platform: string): WindowChrome {
-  if (platform === 'win32') {
-    return {
-      titleBarStyle: 'hidden',
-      titleBarOverlay: {
-        color: '#20242a',
-        symbolColor: '#f3f4f6',
-        height: 42,
-      },
-    };
-  }
+  // Use the same integrated renderer title bar on every desktop OS.
+  // macOS keeps its traffic-light controls at the upper left.
+  if (platform === 'darwin') return { titleBarStyle: 'hidden' };
 
-  // macOS and Linux keep their native window decorations.
-  return { titleBarStyle: 'default' };
+  // Windows and Linux expose native window buttons over the renderer.
+  // Preserve their OS-defined placement without drawing imitation controls.
+  return {
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#20242a',
+      symbolColor: '#f3f4f6',
+      height: 42,
+    },
+  };
 }
 
 export function nativeApplicationMenu(platform: string): boolean {

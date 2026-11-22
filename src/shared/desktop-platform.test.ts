@@ -7,14 +7,13 @@ import {
 } from './desktop-platform';
 
 describe('desktop platform behavior', () => {
-  it('uses native title bars outside Windows', () => {
-    for (const platform of ['darwin', 'linux', 'freebsd']) {
-      expect(windowChrome(platform)).toEqual({ titleBarStyle: 'default' });
-    }
+  it('uses the integrated title bar on macOS without overlay controls', () => {
+    expect(windowChrome('darwin')).toEqual({ titleBarStyle: 'hidden' });
   });
 
-  it('uses the Windows window-controls overlay only on Windows', () => {
-    expect(windowChrome('win32')).toEqual({
+  it('shows native overlay controls on Windows and Linux', () => {
+    for (const platform of ['win32', 'linux', 'freebsd']) {
+      expect(windowChrome(platform)).toEqual({
       titleBarStyle: 'hidden',
       titleBarOverlay: {
         color: '#20242a',
@@ -22,6 +21,7 @@ describe('desktop platform behavior', () => {
         height: 42,
       },
     });
+    }
   });
 
   it('preserves the native macOS application menu', () => {

@@ -65,7 +65,7 @@ Menu items, title-bar pinned commands, keyboard shortcuts, ticket context menus,
 
 ## Platform coverage
 
-Node filesystem and SQLite operations must work on Windows, Linux and macOS. Native window-frame behavior is Windows-specific; use native platform decorations elsewhere. The project `.tickets` links to a file under Electron's `app.getPath('userData')` on every supported platform. GitHub CI currently runs **only on `ubuntu-slim`** without launching a GUI or packaging installers; this is not a claim of Windows/macOS runtime test coverage.
+Node filesystem and SQLite operations must work on Windows, Linux and macOS. The integrated title bar is shared by all desktop platforms; Electron supplies native window buttons. The project `.tickets` links to a file under Electron's `app.getPath('userData')` on every supported platform. GitHub CI currently runs **only on `ubuntu-slim`** without launching a GUI or packaging installers; this is not a claim of Windows/macOS runtime test coverage.
 
 ## Revision diff viewer
 
@@ -81,9 +81,12 @@ The renderer and agent-facing MCP use the same `TicketWorkspace` service for tic
 
 ## Host-platform integration
 
-The application uses native window decorations on macOS and Linux. Windows uses an integrated
-renderer title bar with Electron's window-controls overlay. Only Windows reserves caption-control
-space in the renderer. macOS retains its native application, Edit, View, and Window menus.
+The application uses the same 42-pixel integrated renderer title bar on Windows, macOS, and Linux.
+Electron uses `titleBarStyle: 'hidden'` on all three systems. Windows and Linux enable the
+Window Controls Overlay; the renderer uses the overlay's safe-area CSS environment variables
+to keep tabs and commands clear of OS window controls. macOS keeps its traffic-light buttons
+at the upper left, so the title bar reserves space there. The native macOS application menu
+remains available.
 
 The preload bridge reports the desktop platform to the renderer. Shared platform helpers select
 window chrome and keyboard shortcut labels. The editor, ticket service, SQLite storage, JSON
