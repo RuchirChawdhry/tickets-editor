@@ -1,6 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
+  import CommandPalette from './CommandPalette.svelte'
+  import { commandForShortcut, createCommands, runCommand } from './commands'
+  import type { CommandId, CommandHandlers } from './commands'
   import { parseTicketDraft } from '../../shared/ticket-diagnostics'
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
@@ -17,6 +20,7 @@
   let projectPath = ''
   let editProjectUuid = ''
   let projectFormOpen = false
+  let commandPaletteOpen = false
   let search = ''
   let draft: TicketObject = {}
   let rawJson = ''
@@ -275,12 +279,14 @@
     if (!projectUuid) {
       tickets = []
       linkStatus = null
+      revisions = []
       clearTicket()
       return
     }
     linkStatus = await window.ticketsEditor.getProjectLinkStatus(projectUuid)
     if (linkStatus.mode) linkMode = linkStatus.mode
     tickets = await window.ticketsEditor.listTickets(projectUuid)
+    revisions = await window.ticketsEditor.listProjectRevisions(projectUuid)
     const preservedSelection = selectedTicketIds.filter(id => tickets.some(item => item.ticketUuid === id))
     const next = tickets.find(item => item.ticketUuid === preferredTicketUuid) ??
       tickets.find(item => item.ticketUuid === ticketUuid) ?? tickets[0]
@@ -554,30 +560,95 @@
     }
   }
 
+  function focusTicketSearch(): void {
+    document.getElementById('ticket-search')?.focus()
+  }
+
+  function openCommandPalette(): void {
+    if (projectFormOpen || diffOpen) return
+    commandPaletteOpen = true
+  }
+
+  function closeCommandPalette(): void {
+    commandPaletteOpen = false
+  }
+
+  function clearSelection(): void {
+    selectedTicketIds = []
+    selectionAnchor = ''
+  }
+
+  const handlers: CommandHandlers = {
+    'palette.open': openCommandPalette,
+    'project.register': addProjectForm,
+    'project.settings': editProjectForm,
+    'project.search': focusTicketSearch,
+    'project.import': importTickets,
+    'project.copy': () => copyTickets('project'),
+    'project.export': () => saveExport('project'),
+    'ticket.new': createTicket,
+    'ticket.save': saveTicket,
+    'ticket.delete': deleteTicket,
+    'ticket.format': formatJson,
+    'ticket.undo': () => { jsonEditor?.undoEdit() },
+    'ticket.redo': () => { jsonEditor?.redoEdit() },
+    'ticket.copySelection': () => copyTickets('selection'),
+    'ticket.exportSelection': () => saveExport('selection'),
+    'ticket.selectVisible': selectVisibleTickets,
+    'ticket.clearSelection': clearSelection,
+    'ticket.batchEdit': () => { showBatchEditor = true },
+    'ticket.duplicate': duplicateSelection,
+    'ticket.moveUp': () => moveSelection('up'),
+    'ticket.moveDown': () => moveSelection('down'),
+    'ticket.deleteSelection': deleteSelection,
+    'project.compareRevision': () => {
+      if (revisions[0]) openRevisionDiff(revisions[0].revisionId)
+    },
+    'project.verifyLink': () => verifyLink(),
+  }
+
+  $: commands = createCommands({
+    hasProject: !!projectUuid,
+    hasTicket: !!ticketUuid,
+    dirty,
+    invalidJson: !!parseError,
+    busy,
+    selectionCount: selectedTicketIds.length,
+    revisionCount: revisions.length,
+  }, handlers)
+
+  function executeCommand(id: CommandId): void {
+    runCommand(commands, id)
+  }
+
+  function executePaletteCommand(id: CommandId): void {
+    closeCommandPalette()
+    executeCommand(id)
+  }
+
   function onHotkey(event: KeyboardEvent): void {
-    const command = event.ctrlKey || event.metaKey
-    if (!command) return
+    if (event.defaultPrevented || event.isComposing || commandPaletteOpen ||
+      projectFormOpen || diffOpen) return
+
+    const modified = (event.ctrlKey || event.metaKey) && !event.altKey &&
+      !(event.ctrlKey && event.metaKey)
     const key = event.key.toLowerCase()
     const fromForm = event.target instanceof Element &&
       event.target.closest('.human-body') !== null
 
-    if (fromForm && (key === 'z' || key === 'y')) {
-      // Humanized-form edits were dispatched to the CodeMirror document.
-      // Use that history for both panes rather than the browser's input undo.
+    if (fromForm && modified && (key === 'z' || key === 'y')) {
       event.preventDefault()
-      if (key === 'y' || event.shiftKey) jsonEditor?.redoEdit()
-      else jsonEditor?.undoEdit()
+      // Form changes also enter CodeMirror history; use one undo stack.
+      executeCommand(key === 'y' || event.shiftKey ? 'ticket.redo' : 'ticket.undo')
       return
     }
-    if (key === 's') {
-      event.preventDefault()
-      void saveTicket()
-    }
-    if (key === 'k') {
-      event.preventDefault()
-      document.getElementById('ticket-search')?.focus()
-    }
+
+    const match = commandForShortcut(commands, event)
+    if (!match) return
+    event.preventDefault()
+    executeCommand(match.id)
   }
+
 </script>
 
 <svelte:window onkeydown={onHotkey} />
@@ -589,14 +660,15 @@
       {#each projects as p (p.projectUuid)}
         <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => void selectProject(p.projectUuid)}>▣ {p.name}</button>
       {/each}
-      <button class="title-action" title="Register project" onclick={addProjectForm}>+</button>
+      <button class="title-action" title="Register project" onclick={() => executeCommand('project.register')}>+</button>
     </div>
     <div class="drag-space"></div>
     <div class="title-actions">
-      <button class="title-action" title="Search (Ctrl+K)" onclick={() => document.getElementById('ticket-search')?.focus()}>⌕</button>
-      <button class="title-action" title="Save (Ctrl+S)" disabled={!dirty || !!parseError || busy} onclick={() => void saveTicket()}>▣</button>
-      <button class="title-action" title="Import JSON/JSONL" disabled={!projectUuid || busy} onclick={() => void importTickets()}>⇩</button>
-      <button class="title-action" title="New ticket" disabled={!projectUuid || busy} onclick={() => void createTicket()}>+</button>
+      <button class="title-action" title="Search tickets (Ctrl/⌘+K)" onclick={() => executeCommand('project.search')}>⌕</button>
+      <button class="title-action" title="Commands (Ctrl/⌘+Shift+P)" aria-label="Open command palette" onclick={() => executeCommand('palette.open')}>≡</button>
+      <button class="title-action" title="Save (Ctrl/⌘+S)" disabled={!dirty || !!parseError || busy} onclick={() => executeCommand('ticket.save')}>▣</button>
+      <button class="title-action" title="Import JSON/JSONL" disabled={!projectUuid || busy} onclick={() => executeCommand('project.import')}>⇩</button>
+      <button class="title-action" title="New ticket" disabled={!projectUuid || busy} onclick={() => executeCommand('ticket.new')}>+</button>
     </div>
     <div class="caption-reserved"></div>
   </header>
@@ -616,7 +688,7 @@
     {#if linkStatus?.health === 'conflict'}
       <button onclick={() => void recoverFromSqlite()}>Resolve from SQLite</button>
     {/if}
-    <button disabled={!projectUuid} onclick={editProjectForm}>Project settings</button>
+    <button disabled={!projectUuid} onclick={() => executeCommand('project.settings')}>Project settings</button>
     <button disabled={!projectUuid} onclick={() => void unregisterProject()}>Unregister</button>
   </div>
 
@@ -707,22 +779,22 @@
       {#if projectUuid}
         <input class="search" id="ticket-search" bind:value={search} placeholder="Search tickets…" aria-label="Search tickets" />
         <div class="navigator-controls">
-          <button onclick={() => void createTicket()} disabled={busy}>+ New</button>
-          <button onclick={() => void importTickets()} disabled={busy}>Import JSON/JSONL</button>
+          <button onclick={() => executeCommand('ticket.new')} disabled={busy}>+ New</button>
+          <button onclick={() => executeCommand('project.import')} disabled={busy}>Import JSON/JSONL</button>
         </div>
         <div class="select-controls">
-          <button onclick={selectVisibleTickets}>Select visible</button>
-          <button onclick={() => { selectedTicketIds = [] }}>Clear</button>
-          <button onclick={() => { showBatchEditor = !showBatchEditor }} disabled={!selectedTicketIds.length}>Batch edit</button>
+          <button onclick={() => executeCommand('ticket.selectVisible')}>Select visible</button>
+          <button onclick={() => executeCommand('ticket.clearSelection')}>Clear</button>
+          <button onclick={() => { if (showBatchEditor) showBatchEditor = false; else executeCommand('ticket.batchEdit') }} disabled={!selectedTicketIds.length}>Batch edit</button>
         </div>
         {#if showBatchEditor && selectedTicketIds.length}
           <div class="batch-editor">
             <strong>Batch editing · {selectedTicketIds.length} tickets</strong>
             <div class="batch-actions">
-              <button onclick={() => void duplicateSelection()} disabled={busy}>Duplicate</button>
-              <button class="danger" onclick={() => void deleteSelection()} disabled={busy}>Delete selected</button>
-              <button onclick={() => void moveSelection('up')} disabled={busy}>↑ Move</button>
-              <button onclick={() => void moveSelection('down')} disabled={busy}>↓ Move</button>
+              <button onclick={() => executeCommand('ticket.duplicate')} disabled={busy}>Duplicate</button>
+              <button class="danger" onclick={() => executeCommand('ticket.deleteSelection')} disabled={busy}>Delete selected</button>
+              <button onclick={() => executeCommand('ticket.moveUp')} disabled={busy}>↑ Move</button>
+              <button onclick={() => executeCommand('ticket.moveDown')} disabled={busy}>↓ Move</button>
             </div>
             <label for="batch-kind">Operation</label>
             <select id="batch-kind" bind:value={batchKind}>
@@ -762,10 +834,10 @@
             <option value="jsonl">JSONL</option>
           </select>
           <div class="batch-actions">
-            <button disabled={!selectedTicketIds.length} onclick={() => void copyTickets('selection')}>Copy selected</button>
-            <button onclick={() => void copyTickets('project')}>Copy project</button>
-            <button disabled={!selectedTicketIds.length} onclick={() => void saveExport('selection')}>Save selected…</button>
-            <button onclick={() => void saveExport('project')}>Save project…</button>
+            <button disabled={!selectedTicketIds.length} onclick={() => executeCommand('ticket.copySelection')}>Copy selected</button>
+            <button onclick={() => executeCommand('project.copy')}>Copy project</button>
+            <button disabled={!selectedTicketIds.length} onclick={() => executeCommand('ticket.exportSelection')}>Save selected…</button>
+            <button onclick={() => executeCommand('project.export')}>Save project…</button>
           </div>
         </div>
         <div class="ticket-list">
@@ -784,7 +856,7 @@
         </div>
       {:else}
         <p class="muted">No projects registered.</p>
-        <button class="sidebar-button" onclick={addProjectForm}>Register project</button>
+        <button class="sidebar-button" onclick={() => executeCommand('project.register')}>Register project</button>
       {/if}
     </aside>
 
@@ -822,8 +894,8 @@
           {/if}
           <p class="muted small">Unknown or nested custom fields remain preserved and can be edited in the JSON pane.</p>
           <div class="editor-controls">
-            <button class="primary" disabled={!dirty || !!parseError || busy} onclick={() => void saveTicket()}>Save ticket</button>
-            <button class="danger" onclick={() => void deleteTicket()}>Delete</button>
+            <button class="primary" disabled={!dirty || !!parseError || busy} onclick={() => executeCommand('ticket.save')}>Save ticket</button>
+            <button class="danger" onclick={() => executeCommand('ticket.delete')}>Delete</button>
           </div>
         </div>
       {:else}
@@ -840,7 +912,7 @@
         JSON EDITOR
         <div class="json-header-actions">
           <span>CodeMirror 6 · JSON</span>
-          <button disabled={!ticket() || !!parseError} onclick={formatJson} title="Format JSON with two-space indentation">Format</button>
+          <button disabled={!ticket() || !!parseError} onclick={() => executeCommand('ticket.format')} title="Format JSON with two-space indentation">Format</button>
         </div>
       </div>
       {#if ticket()}
@@ -853,6 +925,14 @@
       {/if}
     </section>
   </main>
+
+  {#if commandPaletteOpen}
+    <CommandPalette
+      {commands}
+      execute={executePaletteCommand}
+      close={closeCommandPalette}
+    />
+  {/if}
 
   <footer class="statusbar">
     <span class="status-ready">● SQLite workspace</span>
