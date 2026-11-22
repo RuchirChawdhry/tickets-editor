@@ -73,7 +73,7 @@ async function screenshot(application, page, name) {
     String(result).trim() + ')');
 }
 
-async function checkGeometry(page) {
+async function checkGeometry(page, theme = 'dark') {
   const rect = await page.evaluate(() => {
     const bar = document.querySelector('.titlebar').getBoundingClientRect();
     const controls = document.querySelector('.title-actions').getBoundingClientRect();
@@ -104,11 +104,13 @@ async function checkGeometry(page) {
     };
   });
   assert.equal(rect.height, 42, 'Title bar must remain 42px high');
-  assert.equal(rect.titlebarColor, 'rgb(23, 23, 23)', 'Title bar must use #171717');
-  assert.equal(rect.customizeColor, 'rgb(23, 23, 23)', 'Customize slot must match title bar');
-  assert.equal(rect.settingsColor, 'rgb(23, 23, 23)', 'Settings slot must match title bar');
+  const titlebarColor = theme === 'light' ? 'rgb(243, 244, 246)' : 'rgb(23, 23, 23)';
+  const activeTabColor = theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(10, 10, 10)';
+  assert.equal(rect.titlebarColor, titlebarColor, 'Title bar must match its theme');
+  assert.equal(rect.customizeColor, titlebarColor, 'Customize slot must match title bar');
+  assert.equal(rect.settingsColor, titlebarColor, 'Settings slot must match title bar');
   if (rect.activeTabColor !== null) {
-    assert.equal(rect.activeTabColor, 'rgb(10, 10, 10)', 'Active tab must use #0A0A0A');
+    assert.equal(rect.activeTabColor, activeTabColor, 'Active tab must match its theme');
   }
   assert.equal(rect.reserved, 140, 'Windows caption reservation must remain 140px');
   assert.equal(rect.settingsWidth, 42, 'Settings is an independent 42px slot');
@@ -267,7 +269,7 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     ({ application, page } = session);
     await page.locator('.title-pinned-action').first().waitFor();
     assert.equal(await page.locator('.title-pinned-action').count(), densePins.length);
-    await checkGeometry(page);
+    await checkGeometry(page, 'light');
     assert.equal(await page.locator('.ticket-card').count(), 16,
       'Populated ticket navigator must survive an app restart');
     assert.equal(await page.locator('html[data-theme="light"]').count(), 1,
