@@ -1,10 +1,10 @@
-# ADR 0001 — SQLite library plus AppData JSON hardlinks
+# ADR 0001 — SQLite library, AppData JSON, and project file links
 
-Status: Accepted design; implementation pending.
+Status: Accepted. The initial link creation and verification flows are implemented; change-watcher and repair UX remain future work.
 
 ## Canonical storage
 
-TicketsEditor stores **one canonical `tickets.json` per project in the Windows AppData user-data directory** obtained from Electron `app.getPath('userData')`. Do not derive this from the application's installation location. SQLite stores all tickets across all projects.
+TicketsEditor keeps one canonical JSON document per project under the Electron `app.getPath('userData')` directory on Windows, independent of the app installation directory.
 
 ~~~text
 %APPDATA%/TicketsEditor/
@@ -13,34 +13,41 @@ TicketsEditor stores **one canonical `tickets.json` per project in the Windows A
     <project-uuid-A>/tickets.json
     <project-uuid-B>/tickets.json
 
-C:/Projects/DLLViewer/.tickets     (hardlink to AppData/projects/<project-uuid-A>/tickets.json)
-C:/Projects/CourseStudio/.tickets  (hardlink to AppData/projects/<project-uuid-B>/tickets.json)
+C:/Projects/DLLViewer/.tickets        (hardlink or symlink to A)
+D:/Projects/CourseStudio/.tickets     (symlink to B)
 ~~~
 
-Illustrative paths only. The project-root `.tickets` and its matching AppData `tickets.json` are two names for the same file, not copies. The project's `.tickets` file must contain valid JSON even when source tickets were imported as JSONL.
+Each `.tickets` is a reference to the matching AppData `tickets.json`, never another independent JSON copy. SQLite stores the searchable multi-project ticket library and revision history. The canonical file must always be valid JSON; source JSONL is normalized to JSON.
 
-## Project registration and hardlink setup
+## Link modes
 
-1. Register the absolute full path of the project directory.
-2. Create or locate the canonical `<userData>/projects/<project-uuid>/tickets.json`.
-3. Serialize the accepted document to valid JSON.
-4. If `<project-root>/.tickets` already exists, inspect and reconcile first; never overwrite unreviewed data.
-5. Check that the AppData JSON and project root reside on the **same filesystem volume**; Windows hardlinks cannot cross volumes. Reject cross-volume setup with a clear error; never silently copy, symlink, or create a project-local alternate JSON file.
-6. Create hardlink `<project-root>/.tickets` pointing to the canonical AppData file.
-7. Verify file identity, parse the JSON, and record both paths, checksum, and link state in `sync_state`.
+| Mode | Windows behavior |
+| --- | --- |
+| `hardlink` | Same volume as canonical AppData file; same underlying file identity. Does not require symlink privilege. |
+| `symlink` | Absolute path to canonical AppData file; permits different local volumes. Windows may require Developer Mode or elevated symbolic-link privileges. |
 
-The UI action is **Set Up .tickets Hardlink**.
+The user chooses the mode explicitly from project settings. Failed link setup must not silently fall back to a copy, symlink, or hardlink of another type. A preexisting unrelated `.tickets` is never overwritten.
 
-## Synchronization and recovery
+## Setup
 
-- App changes update SQLite and the canonical AppData JSON, with explicit recovery state for failures.
-- External edits to an intact `.tickets` hardlink are edits to the AppData JSON file.
-- Watch changes and recheck hashes/file identity on resume. Compare incoming JSON with the last accepted revision.
-- Some editors save by atomic replacement. Replacing the project's `.tickets` can break the hardlink. Detect the file identity change, preserve external edits, and prompt for safe link repair.
-- App writes to the canonical JSON must preserve the existing file object while a link is active; replacing the canonical path through rename severs the hardlink.
-- Never discard tickets on missing/invalid JSON or silently overwrite newer external data.
-- Accepted revisions must permit recovery.
+1. Register an existing project directory using its full absolute path.
+2. Initialize `<userData>/projects/<project-uuid>/tickets.json` from the SQLite document.
+3. Click **Set Up .tickets Link**, choose **Hardlink** or **Symbolic link**.
+4. Inspect the target path. If `.tickets` already exists but is not the desired link, stop rather than replace it.
+5. For a hardlink, compare volume identity before creating it.
+6. For a symlink, use an absolute file target so cross-volume projects work.
+7. Verify same file identity (hardlink) or actual resolved path (symlink).
+8. Record link type, checksum, path and file identity in `sync_state`.
+
+## Editing and synchronization
+
+- App edits validate project file state before modifying SQLite. After committing the accepted document, rewrite the same canonical AppData file in place and update sync metadata.
+- In-place writes preserve hardlink identity. The same target also remains reachable via symlink.
+- External modifications to an intact `.tickets` file change canonical JSON and must not be silently overwritten.
+- The first implementation exposes link-health verification and an explicit **Import external changes** action, which retains the prior SQLite document in revision history.
+- Some text editors replace `.tickets` instead of writing through it. This can sever hardlinks or replace symlinks. Detect and report broken links. Reconcile changes before offering destructive repair.
+- Automatic filesystem watching, automatic reconciliation, conflict UI, resilient recovery from partial failures, and safe link-type switching are future milestones.
 
 ## Explicit constraints
 
-No hardlinks across volumes, no project-local managed backing JSON files, no silent fallback to file copies or symlinks, and no destructive automatic link repair.
+Do not change this design to project-local backing files. Do not relocate canonical JSON outside AppData without user approval. Do not silently create copies, remove unrelated project files, or claim a link is valid without verification.

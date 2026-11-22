@@ -53,7 +53,7 @@ Document identity is not ticket identity. A display number is based on document 
 - External edits to .tickets must be detected, parsed, validated, and merged or presented as conflicts before replacing SQLite's accepted state.
 - File writes should be serialized per project. Use hashes and file identity to detect an external replacement or broken hardlink.
 
-See ADR-0001 for the hardlink and conflict design.
+See ADR-0001 for both link modes and conflict handling.
 
 ## Security
 

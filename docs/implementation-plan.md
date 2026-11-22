@@ -6,7 +6,7 @@ The repo starts as a runnable scaffold, not a completed editor.
 
 - Electron + Svelte + TypeScript app with Windows native title-bar overlay shell.
 - Secure, narrow preload bridge and IPC handlers for version and workspace summary.
-- SQLite database initialization and initial migration with projects, documents, tickets, revisions, and sync_state tables.
+- SQLite database initialization and migrations with projects, documents, tickets, revisions, sync_state, and link mode.
 - Pure ticket validation requiring success_criteria.
 - Pure JSON/JSONL parsing and nested ticket location indexing.
 - Vitest unit tests, ESLint, formatting, TypeScript checking, Windows CI and packaging configuration.
@@ -19,7 +19,7 @@ Implement register/edit/remove project, absolute project-root validation, ticket
 
 ### 2. Managed .tickets file
 
-Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Implement same-volume validation, the `.tickets` hardlink setup button, file-identity verification, document serialization, watcher, hash comparison, conflict workflow, repair and recovery. Do not create managed JSON backing files inside projects.
+Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Provide **hardlink (same volume)** and **symlink (cross-volume)** setup choices, verify link identity, and refuse to overwrite unrelated files. Initial setup and verification are implemented; implement automatic watching, conflict workflows, repair and recovery next. Do not create managed backing files inside projects.
 
 ### 3. Multi-document UX
 

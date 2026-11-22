@@ -17,12 +17,17 @@ const SCHEMA_V1 = [
 
 export function migrateDatabase(db: WorkspaceDatabase): void {
   const version = db.pragma('user_version', { simple: true }) as number
-  if (version > 1) throw new Error('Unsupported SQLite schema version: ' + version)
-  if (version === 1) return
-
+  if (version > 2) throw new Error('Unsupported SQLite schema version: ' + version)
+  if (version === 2) return
   db.transaction(() => {
-    db.exec(SCHEMA_V1)
-    db.pragma('user_version = 1')
+    if (version === 0) {
+      db.exec(SCHEMA_V1)
+      db.pragma('user_version = 1')
+    }
+    if (version <= 1) {
+      db.exec("ALTER TABLE sync_state ADD COLUMN link_type TEXT CHECK(link_type IN ('hardlink', 'symlink'))")
+      db.pragma('user_version = 2')
+    }
   })()
 }
 
