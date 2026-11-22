@@ -7,7 +7,7 @@ import type { LinkMode } from '../shared/contracts';
 export function linkOperationError(
   mode: LinkMode,
   error: unknown,
-  platform = process.platform,
+  platform: string = process.platform,
 ): unknown {
   const code = (error as NodeJS.ErrnoException | null)?.code;
 

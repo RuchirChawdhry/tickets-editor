@@ -2,6 +2,27 @@ import { describe, expect, it } from 'vitest'
 import { collectTicketLocations, parseTicketSource } from './ticket-source'
 
 describe('ticket source', () => {
+  it('imports UTF-8 BOM JSON without changing the parsed document', () => {
+    expect(parseTicketSource('\uFEFF{"tickets":[]}', 'json'))
+      .toEqual({ tickets: [] });
+  });
+
+  it('imports BOM-prefixed JSONL with Windows CRLF line endings', () => {
+    const source = '\uFEFF{"id":"one","task":"First"}\r\n{"id":"two","task":"Second"}\r\n';
+    expect(parseTicketSource(source, 'jsonl')).toEqual([
+      { id: 'one', task: 'First' },
+      { id: 'two', task: 'Second' },
+    ]);
+  });
+
+  it('imports JSONL with Unix LF and legacy Mac CR line endings', () => {
+    const first = '{"id":"one","task":"First"}';
+    const second = '{"id":"two","task":"Second"}';
+    for (const newline of ['\n', '\r']) {
+      expect(parseTicketSource(first + newline + second, 'jsonl')).toHaveLength(2);
+    }
+  });
+
   it('parses JSONL lines containing nested objects', () => {
     const source = [
       '{"id":"a","task":"First","contract":{"nested":true}}',

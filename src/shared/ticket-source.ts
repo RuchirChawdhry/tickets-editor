@@ -5,10 +5,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 export function parseTicketSource(source: string, format: SourceFormat): unknown {
-  if (format === 'json') return JSON.parse(source) as unknown
+  // Some Windows text editors write a UTF-8 BOM. Accept it on every OS.
+  const cleanSource = source.charCodeAt(0) === 0xfeff ? source.slice(1) : source;
+  if (format === 'json') return JSON.parse(cleanSource) as unknown;
 
-  const values: unknown[] = []
-  const lines = source.split(/\r?\n/u)
+  const values: unknown[] = [];
+  // Windows CRLF, Unix LF and legacy Mac CR separators are valid JSONL input.
+  const lines = cleanSource.split(/\r\n|\n|\r/u);
   for (const [index, line] of lines.entries()) {
     if (!line.trim()) continue
     try {
