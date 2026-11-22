@@ -52,7 +52,8 @@ export interface Command {
   run: CommandHandler;
 }
 
-type CommandSpec = Omit<Command, 'enabled' | 'run'> & {
+type CommandSpec = Omit<Command, 'id' | 'enabled' | 'run'> & {
+  id: StaticCommandId;
   available: (context: CommandContext) => boolean;
 };
 
@@ -228,7 +229,7 @@ export function createCommands(
   }));
 
   const projectTabs: Command[] = projects.map((item) => ({
-    id: `project.switch:${item.projectUuid}`,
+    id: `project.switch:${item.projectUuid}` as const,
     title: `Switch to ${item.name}`,
     description: 'Open this project from the project library',
     group: 'Workspace',
