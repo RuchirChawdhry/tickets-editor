@@ -78,7 +78,11 @@ describe('native context-menu IPC validation', () => {
       { kind: 'separator' }, { kind: 'role', role: 'copy' }
     ], x: 12.4, y: 31.8 }
     expect(parseContextMenuRequest(input)).toEqual({
-      items: input.items, x: 12, y: 32
+      items: [
+        { kind: 'action', action: 'ticket.open', label: 'Open ticket', enabled: true },
+        { kind: 'separator' },
+        { kind: 'role', role: 'copy', enabled: true }
+      ], x: 12, y: 32
     })
   })
 
@@ -87,7 +91,7 @@ describe('native context-menu IPC validation', () => {
       { items: [] },
       { items: [{ kind: 'action', action: 'shell.execute', label: 'Launch' }] },
       { items: [{ kind: 'role', role: 'openDevTools' }] },
-      { items: [{ kind: 'action', action: 'ticket.open', label: 'Open\\nInjected' }] },
+      { items: [{ kind: 'action', action: 'ticket.open', label: 'Open' + String.fromCharCode(10) + 'Injected' }] },
       { items: [{ kind: 'action', action: 'ticket.open', label: 'Open', enabled: 'true' }] },
       { items: [{ kind: 'separator' }], x: 3, y: Infinity },
       { items: Array.from({ length: 33 }, () => ({ kind: 'separator' })) },

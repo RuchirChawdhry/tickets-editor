@@ -35,6 +35,17 @@ function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function sanitizeLabel(text: string): string {
+  return Array.from(text, character => {
+    const code = character.charCodeAt(0)
+    return code < 32 || code === 127 ? ' ' : character
+  }).join('')
+}
+
+function hasControlCharacters(text: string): boolean {
+  return sanitizeLabel(text) !== text
+}
+
 /** No arbitrary IPC menu commands, callbacks, or executable content allowed. */
 export function parseContextMenuRequest(value: unknown): ContextMenuRequest {
   if (!object(value) || !Array.isArray(value.items) ||
@@ -54,7 +65,7 @@ export function parseContextMenuRequest(value: unknown): ContextMenuRequest {
     if (raw.kind === 'action' && typeof raw.action === 'string' &&
       actionNames.has(raw.action) && typeof raw.label === 'string' &&
       raw.label.length > 0 && raw.label.length <= 100 &&
-      !/[\u0000-\u001f\u007f]/u.test(raw.label)) {
+      !hasControlCharacters(raw.label)) {
       return {
         kind: 'action', action: raw.action as ContextAction,
         label: raw.label, enabled
@@ -125,7 +136,7 @@ export function projectContextItems(active: boolean, busy: boolean): ContextMenu
 
 export function pinContextItems(title: string, enabled: boolean,
   index: number, total: number): ContextMenuEntry[] {
-  const safeTitle = title.slice(0, 65).replace(/[\u0000-\u001f\u007f]/gu, ' ')
+  const safeTitle = sanitizeLabel(title.slice(0, 65))
   return [
     item('pin.run', `Run ${safeTitle}`, enabled),
     separator(),
