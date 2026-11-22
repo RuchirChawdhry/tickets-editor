@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { onMount, tick } from 'svelte'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
   import CommandPalette from './CommandPalette.svelte'
   import { commandForShortcut, createCommands, runCommand } from './commands'
@@ -639,8 +639,10 @@
     runCommand(currentCommands(), id)
   }
 
-  function executePaletteCommand(id: CommandId): void {
+  async function executePaletteCommand(id: CommandId): Promise<void> {
     closeCommandPalette()
+    // Release the native modal before focusing another field or opening a dialog.
+    await tick()
     executeCommand(id)
   }
 
