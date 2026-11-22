@@ -55,3 +55,14 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
 .project-dialog h2{font-size:19px;margin:0}.project-dialog p{color:#b0bdca;font-size:12px}
 .project-dialog label{font-size:12px}.path-input{display:flex;gap:7px}.path-input input{flex:1}
 .dialog-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
+
+.link-health{font-size:11px;color:#8ac9a8;white-space:nowrap}
+.link-health.link-error,.link-warning{color:#e5b079}
+.link-panel{border-top:1px solid #505b67;margin-top:8px;padding-top:13px;display:flex;flex-direction:column;gap:8px}
+.link-panel h3{font-size:13px;margin:0}
+.link-panel p{margin:0;line-height:1.5}
+.link-panel .link-path{font:11px/1.5 Consolas,"Cascadia Code",monospace;color:#9aaabb;overflow-wrap:anywhere}
+.link-operations{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.link-operations label{font-size:12px}
+.link-operations select{max-width:195px;padding:6px;background:#252b33;color:#e5ecf5;border:1px solid #4a5562;border-radius:4px}
+.link-operations button,.link-panel>button{padding:6px 9px;background:#343c46;color:#d6dfeb;border:1px solid #4a5562;border-radius:4px;font-size:12px}

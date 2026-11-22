@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { ProjectRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
+  import type { LinkMode, ProjectLinkStatus, ProjectRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
 
   let projects: ProjectRecord[] = []
@@ -21,6 +21,8 @@
   let message = ''
   let dirty = false
   let busy = false
+  let linkMode: LinkMode = 'hardlink'
+  let linkStatus: ProjectLinkStatus | null = null
 
   function project(): ProjectRecord | undefined {
     return projects.find(item => item.projectUuid === projectUuid)
@@ -116,9 +118,12 @@
     summary = await window.ticketsEditor.getSummary()
     if (!projectUuid) {
       tickets = []
+      linkStatus = null
       clearTicket()
       return
     }
+    linkStatus = await window.ticketsEditor.getProjectLinkStatus(projectUuid)
+    if (linkStatus.mode) linkMode = linkStatus.mode
     tickets = await window.ticketsEditor.listTickets(projectUuid)
     const next = tickets.find(item => item.ticketUuid === preferredTicketUuid) ??
       tickets.find(item => item.ticketUuid === ticketUuid) ?? tickets[0]
@@ -194,6 +199,51 @@
       await reload()
       message = 'Project registered in SQLite'
       error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function verifyLink(): Promise<void> {
+    if (!projectUuid) return
+    try {
+      linkStatus = await window.ticketsEditor.getProjectLinkStatus(projectUuid)
+      if (linkStatus.mode) linkMode = linkStatus.mode
+      message = linkStatus.details
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    }
+  }
+
+  async function setupLink(): Promise<void> {
+    if (!projectUuid || busy) return
+    busy = true
+    try {
+      linkStatus = await window.ticketsEditor.setupProjectLink(projectUuid, linkMode)
+      message = linkStatus.details
+      error = ''
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function importExternalChanges(): Promise<void> {
+    if (!projectUuid || busy) return
+    if (dirty && !window.confirm('Discard unsaved local changes before importing?')) return
+    busy = true
+    try {
+      const result = await window.ticketsEditor.importExternalChanges(projectUuid)
+      if (result) {
+        clearTicket()
+        await reload()
+        message = 'Imported external changes into SQLite'
+        error = ''
+      }
     } catch (cause) {
       showError(cause)
     } finally {
@@ -315,6 +365,14 @@
     <strong>{project()?.name ?? 'Workspace'}</strong>
     <span class="path-label">{project()?.rootPath ?? 'Register a project to begin'}</span>
     <span class="grow"></span>
+    {#if linkStatus}
+      <span class:link-error={linkStatus.health === 'broken' || linkStatus.health === 'changed'} class="link-health" title={linkStatus.details}>
+        .tickets: {linkStatus.health}{linkStatus.mode ? ' (' + linkStatus.mode + ')' : ''}
+      </span>
+    {/if}
+    {#if linkStatus?.health === 'changed'}
+      <button onclick={() => void importExternalChanges()}>Import external changes</button>
+    {/if}
     <button disabled={!projectUuid} onclick={editProjectForm}>Project settings</button>
     <button disabled={!projectUuid} onclick={() => void unregisterProject()}>Unregister</button>
   </div>
@@ -331,6 +389,29 @@
           <input id="project-path" bind:value={projectPath} placeholder="C:\Projects\DLLViewer" />
           <button onclick={() => void pickDirectory()}>Browse…</button>
         </div>
+        {#if editProjectUuid && linkStatus}
+          <div class="link-panel">
+            <h3>Project .tickets link</h3>
+            <p>{linkStatus.details}</p>
+            <p class="link-path">Source: {linkStatus.canonicalPath}</p>
+            <p class="link-path">Project: {linkStatus.projectFilePath}</p>
+            <div class="link-operations">
+              <label for="link-mode">Link type</label>
+              <select id="link-mode" bind:value={linkMode} disabled={linkStatus.health === 'linked'}>
+                <option value="hardlink">Hardlink (same volume)</option>
+                <option value="symlink">Symbolic link (cross-volume)</option>
+              </select>
+              <button onclick={() => void setupLink()} disabled={busy || linkStatus.health === 'linked'}>Set Up .tickets Link</button>
+              <button onclick={() => void verifyLink()}>Verify Link</button>
+            </div>
+            {#if linkStatus.health === 'changed'}
+              <button onclick={() => void importExternalChanges()} disabled={busy}>Import external edits</button>
+            {/if}
+            {#if linkStatus.health === 'broken'}
+              <p class="link-warning">Link repair requires reconciling any external changes first. Automatic repair is not implemented yet.</p>
+            {/if}
+          </div>
+        {/if}
         <div class="dialog-actions">
           <button onclick={() => { projectFormOpen = false }}>Cancel</button>
           <button class="primary" disabled={busy || !projectName.trim() || !projectPath.trim()} onclick={() => void saveProject()}>
