@@ -186,15 +186,15 @@ GitHub Actions runs source checks on pushes and pull requests. A separate **tagg
 
 ### Publish a desktop release
 
-1. Update `package.json`'s `version` to the new version (for example `0.5.0`).
+1. Update `package.json`'s `version` to the new version (for example `0.6.0`).
 2. Commit the changes to `main`, and ensure its CI checks pass.
 3. Create and push a matching version tag:
 
 ```sh
 git checkout main
 git pull --ff-only
-git tag -a v0.5.0 -m "TicketsEditor 0.5.0"
-git push origin v0.5.0
+git tag -a v0.6.0 -m "TicketsEditor 0.6.0"
+git push origin v0.6.0
 ```
 
 **The tag must match the version in `package.json` exactly**, prefixed with `v`. A mismatched tag fails before packaging. Tags such as `v0.2.0-beta.1` publish as prereleases.

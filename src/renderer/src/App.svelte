@@ -1271,7 +1271,7 @@
             </section>
             <section class="settings-section">
               <h3>About</h3>
-              <p class="settings-description">TicketsEditor v{version || '0.5.0'} · Local SQLite workspace</p>
+              <p class="settings-description">TicketsEditor v{version || '0.6.0'} · Local SQLite workspace</p>
             </section>
           </div>
           <div class="dialog-actions settings-footer">
@@ -1583,6 +1583,6 @@
     {#if error}<span class="error" title={error}>{error}</span>{/if}
     {#if message}<span class="success">{message}</span>{/if}
     <span class="grow"></span>
-    <span>v{version || '0.5.0'}</span>
+    <span>v{version || '0.6.0'}</span>
   </footer>
 </div>
