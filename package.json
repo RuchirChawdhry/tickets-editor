@@ -23,7 +23,14 @@
     "dist:mac": "npm run build && electron-builder --mac"
   },
   "dependencies": {
-    "better-sqlite3": "^13.2.0"
+    "@codemirror/commands": "^6.0.0",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/language": "^6.0.0",
+    "@codemirror/lint": "^6.9.8",
+    "@codemirror/view": "^6.0.0",
+    "@lezer/highlight": "^1.2.0",
+    "better-sqlite3": "^13.2.0",
+    "codemirror": "^6.0.2"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.13",

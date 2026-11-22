@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import JsonCodeEditor from './JsonCodeEditor.svelte'
+  import { parseTicketDraft } from '../../shared/ticket-diagnostics'
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
@@ -18,6 +20,8 @@
   let search = ''
   let draft: TicketObject = {}
   let rawJson = ''
+  let editorSession = 0
+  let jsonEditor: JsonCodeEditor | undefined
   let parseError = ''
   let error = ''
   let message = ''
@@ -64,11 +68,12 @@
   }
 
   function changeDraft(next: TicketObject): void {
-    draft = next
-    rawJson = JSON.stringify(next, null, 2)
-    parseError = ''
-    dirty = true
-    message = ''
+    // Never overwrite malformed JSON from a form edit. The user must first
+    // correct the raw text in CodeMirror, where the last valid draft survives.
+    if (parseError) return
+    const text = JSON.stringify(next, null, 2)
+    if (jsonEditor) jsonEditor.replaceDocument(text)
+    else changeJson(text)
   }
 
   function changeText(key: string, value: string): void {
@@ -92,17 +97,16 @@
   function changeJson(value: string): void {
     rawJson = value
     dirty = true
-    try {
-      const result: unknown = JSON.parse(value)
-      if (result === null || typeof result !== 'object' || Array.isArray(result)) {
-        parseError = 'Ticket must be a JSON object'
-      } else {
-        draft = result as TicketObject
-        parseError = ''
-      }
-    } catch (cause) {
-      parseError = cause instanceof Error ? cause.message : String(cause)
-    }
+    message = ''
+    const result = parseTicketDraft(value)
+    parseError = result.parseError ?? ''
+    if (result.ticket) draft = result.ticket
+  }
+
+  function formatJson(): void {
+    if (parseError || !jsonEditor) return
+    jsonEditor.replaceDocument(JSON.stringify(draft, null, 2))
+    jsonEditor.focusEditor()
   }
 
   function openTicket(item: TicketRecord): void {
@@ -112,6 +116,7 @@
     selectionAnchor = item.ticketUuid
     draft = structuredClone(item.payload)
     rawJson = JSON.stringify(draft, null, 2)
+    editorSession++
     parseError = ''
     dirty = false
     message = ''
@@ -122,6 +127,7 @@
     selectedTicketIds = []
     draft = {}
     rawJson = ''
+    editorSession++
     dirty = false
     parseError = ''
   }
@@ -549,11 +555,25 @@
   }
 
   function onHotkey(event: KeyboardEvent): void {
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+    const command = event.ctrlKey || event.metaKey
+    if (!command) return
+    const key = event.key.toLowerCase()
+    const fromForm = event.target instanceof Element &&
+      event.target.closest('.human-body') !== null
+
+    if (fromForm && (key === 'z' || key === 'y')) {
+      // Humanized-form edits were dispatched to the CodeMirror document.
+      // Use that history for both panes rather than the browser's input undo.
+      event.preventDefault()
+      if (key === 'y' || event.shiftKey) jsonEditor?.redoEdit()
+      else jsonEditor?.undoEdit()
+      return
+    }
+    if (key === 's') {
       event.preventDefault()
       void saveTicket()
     }
-    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+    if (key === 'k') {
       event.preventDefault()
       document.getElementById('ticket-search')?.focus()
     }
@@ -772,20 +792,23 @@
       <div class="panel-heading">HUMANIZED EDITOR <span>{ticket() ? 'Ticket ' + ticket()?.number : 'Select ticket'}</span></div>
       {#if ticket()}
         <div class="human-body">
+          {#if parseError}
+            <div class="parse-warning" role="status">JSON has a syntax error. The humanized form is locked until the JSON is corrected; your last valid fields are preserved.</div>
+          {/if}
           <label for="ticket-id">ID</label>
-          <input id="ticket-id" value={textValue('id')} oninput={e => changeText('id', e.currentTarget.value)} />
+          <input id="ticket-id" disabled={!!parseError} value={textValue('id')} oninput={e => changeText('id', e.currentTarget.value)} />
           <label for="ticket-task">Task</label>
-          <textarea id="ticket-task" rows="3" value={textValue('task')} oninput={e => changeText('task', e.currentTarget.value)}></textarea>
+          <textarea id="ticket-task" rows="3" disabled={!!parseError} value={textValue('task')} oninput={e => changeText('task', e.currentTarget.value)}></textarea>
           {#each ['deps', 'work', 'tests', 'success_criteria'] as field (field)}
             <div class="section-header">
               <h3>{field === 'success_criteria' ? 'Success Criteria (required)' : field === 'deps' ? 'Dependencies' : field === 'work' ? 'Work' : 'Tests'}</h3>
-              <button onclick={() => appendItem(field)}>+ Add</button>
+              <button disabled={!!parseError} onclick={() => appendItem(field)}>+ Add</button>
             </div>
             {#each listValue(field) as item, i (i)}
               <div class="list-row">
                 <span>{i + 1}.</span>
-                <textarea rows="2" value={item} oninput={e => changeItem(field, i, e.currentTarget.value)}></textarea>
-                <button title="Remove item" aria-label="Remove item" onclick={() => removeItem(field, i)}>×</button>
+                <textarea rows="2" disabled={!!parseError} value={item} oninput={e => changeItem(field, i, e.currentTarget.value)}></textarea>
+                <button disabled={!!parseError} title="Remove item" aria-label="Remove item" onclick={() => removeItem(field, i)}>×</button>
               </div>
             {/each}
           {/each}
@@ -813,10 +836,18 @@
     </section>
 
     <section class="json-pane">
-      <div class="panel-heading">JSON EDITOR <span>Pretty-printed · 2 spaces</span></div>
+      <div class="panel-heading">
+        JSON EDITOR
+        <div class="json-header-actions">
+          <span>CodeMirror 6 · JSON</span>
+          <button disabled={!ticket() || !!parseError} onclick={formatJson} title="Format JSON with two-space indentation">Format</button>
+        </div>
+      </div>
       {#if ticket()}
-        <textarea class="json-code" spellcheck="false" aria-label="JSON editor" value={rawJson} oninput={e => changeJson(e.currentTarget.value)}></textarea>
-        {#if parseError}<p class="parse-error">{parseError}</p>{/if}
+        {#key editorSession}
+          <JsonCodeEditor initialValue={rawJson} onChange={changeJson} bind:this={jsonEditor} />
+        {/key}
+        {#if parseError}<p class="parse-error" role="status">{parseError}</p>{/if}
       {:else}
         <pre class="muted">Select a ticket to view formatted JSON.</pre>
       {/if}

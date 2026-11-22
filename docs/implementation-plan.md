@@ -27,7 +27,7 @@ Add integrated document tabs (not ticket tabs), pinned commands, shared command 
 
 ### 4. Editing
 
-Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Current editor supports multi-select with Ctrl/Shift, array field batch edits, text replacement, nested-document preservation, duplication, move up/down, delete selection and export. Add schema-driven nested-field widgets, keyboard command registry, CodeMirror and undo/redo.
+Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Current editor supports multi-select with Ctrl/Shift, array field batch edits, text replacement, nested-document preservation, duplication, move up/down, delete selection and export. CodeMirror 6 is implemented with shared editing history, syntax/schema diagnostics and formatting. Next: schema-driven nested-field widgets and the shared keyboard command registry.
 
 ### 5. Import/export/validation
 
