@@ -1,0 +1,12 @@
+appId: io.github.ruchirchawdhry.ticketseditor
+productName: TicketsEditor
+directories:
+  output: dist
+files:
+  - out/**/*
+  - package.json
+asarUnpack:
+  - '**/*.node'
+win:
+  target:
+    - nsis
