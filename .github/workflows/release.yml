@@ -12,7 +12,6 @@ on:
         description: 'Existing version tag to package without moving it'
         required: true
         type: string
-  workflow_dispatch:
 
 permissions:
   contents: read
