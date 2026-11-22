@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   tag-and-dispatch:
-    if: github.repository == 'RuchirChawdhry/tickets-editor' && github.event.head_commit.message == 'ci: dispatch v0.5.0 release'
+    if: "github.repository == 'RuchirChawdhry/tickets-editor' && github.event.head_commit.message == 'ci: dispatch v0.5.0 release'"
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
