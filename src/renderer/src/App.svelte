@@ -3,7 +3,7 @@
   import JsonCodeEditor from './JsonCodeEditor.svelte'
   import CommandPalette from './CommandPalette.svelte'
   import { commandForShortcut, createCommands, runCommand } from './commands'
-  import type { CommandId, CommandHandlers } from './commands'
+  import type { Command, CommandId, CommandHandlers } from './commands'
   import { parseTicketDraft } from '../../shared/ticket-diagnostics'
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
@@ -607,18 +607,36 @@
     'project.verifyLink': () => verifyLink(),
   }
 
-  $: commands = createCommands({
-    hasProject: !!projectUuid,
-    hasTicket: !!ticketUuid,
-    dirty,
-    invalidJson: !!parseError,
-    busy,
-    selectionCount: selectedTicketIds.length,
-    revisionCount: revisions.length,
-  }, handlers, projects, (id) => { void selectProject(id) })
+  function buildCommands(
+    activeProject: string,
+    activeTicket: string,
+    unsaved: boolean,
+    invalidJson: boolean,
+    isBusy: boolean,
+    selectedCount: number,
+    revisionCount: number,
+    registeredProjects: ProjectRecord[],
+  ): Command[] {
+    return createCommands({
+      hasProject: !!activeProject,
+      hasTicket: !!activeTicket,
+      dirty: unsaved,
+      invalidJson,
+      busy: isBusy,
+      selectionCount: selectedCount,
+      revisionCount,
+    }, handlers, registeredProjects, (id) => { void selectProject(id) })
+  }
+
+  function currentCommands(): Command[] {
+    return buildCommands(
+      projectUuid, ticketUuid, dirty, !!parseError, busy,
+      selectedTicketIds.length, revisions.length, projects,
+    )
+  }
 
   function executeCommand(id: CommandId): void {
-    runCommand(commands, id)
+    runCommand(currentCommands(), id)
   }
 
   function executePaletteCommand(id: CommandId): void {
@@ -643,7 +661,7 @@
       return
     }
 
-    const match = commandForShortcut(commands, event)
+    const match = commandForShortcut(currentCommands(), event)
     if (!match) return
     event.preventDefault()
     executeCommand(match.id)
@@ -928,7 +946,10 @@
 
   {#if commandPaletteOpen}
     <CommandPalette
-      {commands}
+      commands={buildCommands(
+        projectUuid, ticketUuid, dirty, !!parseError, busy,
+        selectedTicketIds.length, revisions.length, projects,
+      )}
       execute={executePaletteCommand}
       close={closeCommandPalette}
     />
