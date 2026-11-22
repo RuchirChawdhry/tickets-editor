@@ -1,5 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte'
+  import { APP_THEME_KEY, loadTheme, saveTheme } from './app-theme'
+  import type { AppTheme } from './app-theme'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
   import CommandPalette from './CommandPalette.svelte'
   import TitlebarCustomize from './TitlebarCustomize.svelte'
@@ -30,6 +32,7 @@
   let settingsOpen = false
   let settingsTab: 'app' | 'project' = 'app'
   let interfaceDensity: 'comfortable' | 'compact' = 'comfortable'
+  let appTheme: AppTheme = 'dark'
   const DENSITY_STORAGE_KEY = 'tickets-editor.interface-density.v1'
   let commandPaletteOpen = false
   let titlebarCustomizeOpen = false
@@ -326,6 +329,9 @@
 
   onMount(() => {
     pinnedCommandIds = loadTitlebarPins(pinStorage)
+    appTheme = loadTheme(window.localStorage)
+    document.documentElement.dataset.theme = appTheme
+    void window.ticketsEditor.setTheme(appTheme).catch(showError)
     try {
       const storedDensity = window.localStorage.getItem(DENSITY_STORAGE_KEY)
       if (storedDensity === 'comfortable' || storedDensity === 'compact') {
@@ -336,6 +342,11 @@
     }
     const onStorageChange = (event: StorageEvent): void => {
       if (event.key === PIN_STORAGE_KEY) pinnedCommandIds = loadTitlebarPins(pinStorage)
+      if (event.key === APP_THEME_KEY) {
+        appTheme = loadTheme(window.localStorage)
+        document.documentElement.dataset.theme = appTheme
+        void window.ticketsEditor.setTheme(appTheme).catch(showError)
+      }
     }
     window.addEventListener('storage', onStorageChange)
     const unsubscribe = window.ticketsEditor.onProjectLinkChanged(() => { void verifyLink(false) })
@@ -385,6 +396,16 @@
 
   function closeSettings(): void {
     settingsOpen = false
+  }
+
+  function setAppTheme(value: string): void {
+    if (value !== 'dark' && value !== 'light') return
+    appTheme = value
+    document.documentElement.dataset.theme = value
+    if (!saveTheme(window.localStorage, value)) {
+      error = 'Theme changed, but your preference could not be saved.'
+    }
+    void window.ticketsEditor.setTheme(value).catch(showError)
   }
 
   function setInterfaceDensity(value: string): void {
@@ -952,6 +973,16 @@
           <div class="settings-content" id="settings-tab-panel" role="tabpanel" aria-labelledby="settings-tab-application">
             <section class="settings-section">
               <h3>Appearance</h3>
+              <label for="app-theme">Theme</label>
+              <select
+                id="app-theme"
+                value={appTheme}
+                onchange={(event) => setAppTheme((event.currentTarget as HTMLSelectElement).value)}
+              >
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+              <p class="settings-description">Dark is the default. The chosen theme is saved for future sessions.</p>
               <label for="interface-density">Interface density</label>
               <select
                 id="interface-density"
@@ -1221,7 +1252,7 @@
       </div>
       {#if ticket()}
         {#key editorSession}
-          <JsonCodeEditor initialValue={rawJson} onChange={changeJson} bind:this={jsonEditor} />
+          <JsonCodeEditor initialValue={rawJson} onChange={changeJson} theme={appTheme} bind:this={jsonEditor} />
         {/key}
         {#if parseError}<p class="parse-error" role="status">{parseError}</p>{/if}
       {:else}

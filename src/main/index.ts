@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme } from 'electron'
 import { readFileSync, writeFileSync, watch } from 'node:fs'
 import type { FSWatcher } from 'node:fs'
 import { extname, join } from 'node:path'
@@ -93,6 +93,20 @@ function createWindow(): void {
 
 function registerHandlers(): void {
   ipcMain.handle('app:version', event => { authorized(event); return app.getVersion() })
+  ipcMain.handle('app:set-theme', (event, theme: unknown) => {
+    authorized(event)
+    if (theme !== 'dark' && theme !== 'light') throw new Error('Invalid application theme')
+    nativeTheme.themeSource = theme
+    const background = theme === 'dark' ? '#20242a' : '#f5f6f8'
+    mainWindow?.setBackgroundColor(background)
+    if (process.platform === 'win32') {
+      mainWindow?.setTitleBarOverlay({
+        color: theme === 'dark' ? '#171717' : '#f3f4f6',
+        symbolColor: theme === 'dark' ? '#f3f4f6' : '#202630',
+        height: 42
+      })
+    }
+  })
   ipcMain.handle('workspace:summary', event => getWorkspaceSummary(authorized(event)))
   ipcMain.handle('projects:list', event => { authorized(event); return ticketService().listProjects() })
   ipcMain.handle('projects:choose-directory', async event => {

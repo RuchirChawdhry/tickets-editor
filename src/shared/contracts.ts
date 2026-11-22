@@ -79,6 +79,7 @@ export interface RevisionRecord {
 
 export interface TicketsEditorBridge {
   getVersion(): Promise<string>
+  setTheme(theme: 'dark' | 'light'): Promise<void>
   getSummary(): Promise<WorkspaceSummary>
   listProjects(): Promise<ProjectRecord[]>
   chooseProjectDirectory(): Promise<string | null>

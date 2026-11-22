@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { EditorView, basicSetup } from 'codemirror'
+  import { Compartment } from '@codemirror/state'
+  import type { Extension } from '@codemirror/state'
   import { keymap } from '@codemirror/view'
   import { indentWithTab, redo, undo } from '@codemirror/commands'
   import { json, jsonParseLinter } from '@codemirror/lang-json'
@@ -8,12 +10,20 @@
   import { syntaxHighlighting, HighlightStyle } from '@codemirror/language'
   import { tags } from '@lezer/highlight'
   import { ticketFieldDiagnostics, parseTicketDraft } from '../../shared/ticket-diagnostics'
+  import type { AppTheme } from './app-theme'
 
   export let initialValue: string
+  export let theme: AppTheme = 'dark'
   export let onChange: (value: string) => void
 
   let mountNode: HTMLDivElement
   let editor: EditorView | null = null
+  const themeCompartment = new Compartment()
+
+  // Reconfigure only presentation extensions. The document and undo history survive.
+  $: if (editor) {
+    editor.dispatch({ effects: themeCompartment.reconfigure(themeExtensions(theme)) })
+  }
 
   const jsonColors = HighlightStyle.define([
     { tag: tags.propertyName, color: '#8bbbea' },
@@ -24,7 +34,7 @@
     { tag: tags.punctuation, color: '#9aa9bc' }
   ])
 
-  const editorTheme = EditorView.theme({
+  const darkEditorTheme = EditorView.theme({
     '&': {
       height: '100%',
       fontSize: '13px',
@@ -51,6 +61,49 @@
     '.cm-lintRange-error': { backgroundImage: 'none', borderBottom: '2px wavy #d98c82' },
     '.cm-tooltip': { backgroundColor: '#293340', color: '#e5ecf5', borderColor: '#526273' }
   }, { dark: true })
+
+  const lightJsonColors = HighlightStyle.define([
+    { tag: tags.propertyName, color: '#1e5c9a' },
+    { tag: tags.string, color: '#176b43' },
+    { tag: tags.number, color: '#a34e16' },
+    { tag: tags.bool, color: '#7543a4' },
+    { tag: tags.null, color: '#7543a4' },
+    { tag: tags.punctuation, color: '#596776' }
+  ])
+
+  const lightEditorTheme = EditorView.theme({
+    '&': {
+      height: '100%',
+      fontSize: '13px',
+      color: '#233140',
+      backgroundColor: '#ffffff'
+    },
+    '.cm-scroller': {
+      fontFamily: '"Cascadia Code", Consolas, ui-monospace, monospace',
+      lineHeight: '1.55',
+      overflow: 'auto'
+    },
+    '.cm-gutters': {
+      color: '#677687',
+      backgroundColor: '#f2f5f8',
+      borderRight: '1px solid #d5dde6'
+    },
+    '.cm-activeLine': { backgroundColor: '#e9f1f955' },
+    '.cm-activeLineGutter': { backgroundColor: '#e5ecf3' },
+    '.cm-cursor': { borderLeftColor: '#1e2937' },
+    '.cm-selectionBackground': { backgroundColor: '#9fc5ea77' },
+    '&.cm-focused .cm-selectionBackground': { backgroundColor: '#81b1df88' },
+    '.cm-content': { padding: '10px 0', caretColor: '#1e2937' },
+    '.cm-diagnostic-error': { borderLeftColor: '#b42318' },
+    '.cm-lintRange-error': { backgroundImage: 'none', borderBottom: '2px wavy #b42318' },
+    '.cm-tooltip': { backgroundColor: '#ffffff', color: '#243140', borderColor: '#bdc9d6' }
+  }, { dark: false })
+
+  function themeExtensions(selected: AppTheme): Extension[] {
+    return selected === 'dark'
+      ? [syntaxHighlighting(jsonColors), darkEditorTheme]
+      : [syntaxHighlighting(lightJsonColors), lightEditorTheme]
+  }
 
   export function replaceDocument(text: string): void {
     if (!editor) return
@@ -83,8 +136,7 @@
       extensions: [
         basicSetup,
         json(),
-        syntaxHighlighting(jsonColors),
-        editorTheme,
+        themeCompartment.of(themeExtensions(theme)),
         keymap.of([indentWithTab]),
         lintGutter(),
         linter(view => {

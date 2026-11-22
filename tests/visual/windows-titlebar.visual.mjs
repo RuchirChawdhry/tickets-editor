@@ -178,6 +178,15 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     assert.equal(await page.locator('.subbar').count(), 0, 'Workspace subbar must be absent');
     await page.getByRole('button', { name: 'Open settings' }).click();
     await page.getByRole('tab', { name: 'Application' }).waitFor({ state: 'visible' });
+    assert.equal(await page.locator('#app-theme').inputValue(), 'dark');
+    await page.locator('#app-theme').selectOption('light');
+    assert.equal(await page.locator('html[data-theme="light"]').count(), 1);
+    const lightTitlebar = await page.locator('.titlebar').evaluate(
+      element => getComputedStyle(element).backgroundColor,
+    );
+    assert.equal(lightTitlebar, 'rgb(243, 244, 246)');
+    await page.locator('#app-theme').selectOption('dark');
+    assert.equal(await page.locator('html[data-theme="dark"]').count(), 1);
     assert.equal(await page.getByRole('tab', { name: 'Project' }).isDisabled(), true);
     await page.locator('#interface-density').selectOption('compact');
     assert.equal(await page.locator('.app.compact').count(), 1);
@@ -243,6 +252,15 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     await page.keyboard.press('Escape');
     await page.locator('.command-palette').waitFor({ state: 'detached' });
 
+    // Persist light mode across an actual app restart with a populated JSON editor.
+    await page.getByRole('button', { name: 'Open settings' }).click();
+    await page.locator('#app-theme').selectOption('light');
+    await page.getByRole('button', { name: 'Close settings' }).click();
+    assert.equal(await page.locator('.cm-editor').count(), 1);
+    assert.equal(await page.locator('.cm-editor').evaluate(
+      element => getComputedStyle(element).backgroundColor,
+    ), 'rgb(255, 255, 255)');
+
     await application.close();
     session = null;
     session = await launch(appData);
@@ -252,7 +270,16 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     await checkGeometry(page);
     assert.equal(await page.locator('.ticket-card').count(), 16,
       'Populated ticket navigator must survive an app restart');
+    assert.equal(await page.locator('html[data-theme="light"]').count(), 1,
+      'Light preference must survive an app restart');
+    assert.equal(await page.locator('.cm-editor').evaluate(
+      element => getComputedStyle(element).backgroundColor,
+    ), 'rgb(255, 255, 255)');
     await screenshot(application, page, '09-after-restart');
+    await page.getByRole('button', { name: 'Open settings' }).click();
+    await page.locator('#app-theme').selectOption('dark');
+    await page.getByRole('button', { name: 'Close settings' }).click();
+    await checkGeometry(page);
     log('PASS: WinApp CLI HWND captures, icon-only title bar, readable typography, JSONL + nested JSON fixtures');
   } catch (error) {
     log('FAIL: ' + String(error?.stack || error));

@@ -1,0 +1,336 @@
+/*
+ * Light palette only. Dark mode is the original app.css/revision-diff.css
+ * without modifications. Keep specificity higher than component selectors.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --text-primary: #223040;
+  --text-secondary: #4b5a6b;
+  --text-muted: #596a7c;
+  --scroll-thumb: #afbaca;
+  --scroll-thumb-hover: #7c8da1;
+  color: var(--text-primary);
+  background: #f5f6f8;
+}
+:root[data-theme='light'] input,
+:root[data-theme='light'] textarea {
+  background: #ffffff;
+  color: #243142;
+  border-color: #c6d0da;
+}
+:root[data-theme='light'] input:focus,
+:root[data-theme='light'] textarea:focus {
+  border-color: #397dbf;
+}
+:root[data-theme='light'] ::placeholder { color: #758495; opacity: 1; }
+
+/* Flat Windows title bar; active project has a quieter contrasting surface. */
+:root[data-theme='light'] .titlebar {
+  background: #f3f4f6;
+  border-bottom-color: #cfd7e1;
+}
+:root[data-theme='light'] .tab {
+  color: #485669;
+  border-left-color: #d5dde6;
+}
+:root[data-theme='light'] .tab.active,
+:root[data-theme='light'] .tab.active:hover {
+  color: #1c2a38;
+  background: #ffffff;
+}
+:root[data-theme='light'] .tab:hover:not(.active),
+:root[data-theme='light'] .title-action:hover {
+  background: #e4e9ef;
+}
+:root[data-theme='light'] .title-action {
+  color: #4a5969;
+}
+:root[data-theme='light'] .titlebar-customize-trigger,
+:root[data-theme='light'] .titlebar-settings-trigger {
+  background: #f3f4f6;
+  color: #45586d;
+  border-left-color: #cdd7e1;
+  border-right-color: #cdd7e1;
+}
+:root[data-theme='light'] .titlebar-customize-trigger:hover,
+:root[data-theme='light'] .titlebar-settings-trigger:hover {
+  background: #e4e9ef;
+}
+
+/* Editor layout and ticket navigator. */
+:root[data-theme='light'] .navigator {
+  background: #f0f3f7;
+  border-right-color: #d2dbe5;
+}
+:root[data-theme='light'] .human-pane {
+  background: #ffffff;
+  border-right-color: #d2dbe5;
+}
+:root[data-theme='light'] .json-pane {
+  background: #ffffff;
+}
+:root[data-theme='light'] .panel-heading,
+:root[data-theme='light'] .human-body > label {
+  color: #415267;
+}
+:root[data-theme='light'] .ticket-card {
+  background: #ffffff;
+  color: #263647;
+  border-color: #d0dae4;
+}
+:root[data-theme='light'] .ticket-card.active {
+  background: #e1edf9;
+  border-color: #5685b3;
+}
+:root[data-theme='light'] .ticket-card.selected {
+  border-color: #5685b3;
+  box-shadow: inset 3px 0 0 #397dbf;
+}
+:root[data-theme='light'] .ticket-card:hover { border-color: #7999ba; }
+:root[data-theme='light'] .ticket-task { color: #405164; }
+:root[data-theme='light'] .list-row span,
+:root[data-theme='light'] .list-row button { color: #566579; }
+:root[data-theme='light'] .welcome p { color: #5c6c7c; }
+:root[data-theme='light'] .json-code {
+  background: #ffffff;
+  color: #263647;
+}
+:root[data-theme='light'] .validation-warning {
+  background: #fff4dc;
+  color: #77500d;
+  border-left-color: #bd831d;
+}
+:root[data-theme='light'] .validation-warning p { color: #77500d; }
+:root[data-theme='light'] .parse-error {
+  background: #fff0f0;
+  color: #9d2a24;
+}
+:root[data-theme='light'] .statusbar {
+  background: #edf1f5;
+  color: #536477;
+  border-top-color: #cfd8e2;
+}
+:root[data-theme='light'] .status-ready,
+:root[data-theme='light'] .success,
+:root[data-theme='light'] .status-link { color: #176646; }
+:root[data-theme='light'] .status-link:hover { background: #dbe6f0; }
+:root[data-theme='light'] .status-link.link-error,
+:root[data-theme='light'] .link-warning { color: #915c05; }
+:root[data-theme='light'] .unsaved { color: #8d5a0a; }
+:root[data-theme='light'] .error { color: #a52c24; }
+
+/* Shared controls across ticket, selection, settings and revision forms. */
+:root[data-theme='light'] .navigator-controls button,
+:root[data-theme='light'] .section-header button,
+:root[data-theme='light'] .editor-controls button,
+:root[data-theme='light'] .dialog-actions button,
+:root[data-theme='light'] .path-input button,
+:root[data-theme='light'] .sidebar-button,
+:root[data-theme='light'] .link-operations button,
+:root[data-theme='light'] .link-panel > button,
+:root[data-theme='light'] .revision-item button,
+:root[data-theme='light'] .revision-panel button,
+:root[data-theme='light'] .select-controls button,
+:root[data-theme='light'] .batch-actions button,
+:root[data-theme='light'] .batch-editor button,
+:root[data-theme='light'] .export-controls button,
+:root[data-theme='light'] .settings-button-row button,
+:root[data-theme='light'] .settings-footer button {
+  background: #f5f7fa;
+  color: #344457;
+  border-color: #c6d1de;
+}
+:root[data-theme='light'] button.primary,
+:root[data-theme='light'] .settings-footer button.primary {
+  background: #286da8;
+  border-color: #286da8;
+  color: #ffffff;
+}
+:root[data-theme='light'] button.danger { color: #9d302f; }
+:root[data-theme='light'] .batch-editor,
+:root[data-theme='light'] .export-controls {
+  background: #f0f3f7;
+  border-block-color: #d3dce6;
+  color: #334559;
+}
+:root[data-theme='light'] .batch-editor label,
+:root[data-theme='light'] .export-controls label { color: #526378; }
+:root[data-theme='light'] .batch-editor input,
+:root[data-theme='light'] .batch-editor select,
+:root[data-theme='light'] .export-controls select,
+:root[data-theme='light'] .link-operations select,
+:root[data-theme='light'] .settings-section select {
+  color: #28384a;
+  background: #ffffff;
+  border-color: #c6d1de;
+}
+
+/* Unified settings and registration dialogs. */
+:root[data-theme='light'] .dialog-shade { background: #22304065; }
+:root[data-theme='light'] .project-dialog {
+  background: #ffffff;
+  color: #27384a;
+  border-color: #ccd7e1;
+  box-shadow: 0 18px 48px #26364940;
+}
+:root[data-theme='light'] .project-dialog p { color: #5a6a7b; }
+:root[data-theme='light'] .link-panel { border-top-color: #d7e0e8; }
+:root[data-theme='light'] .link-panel .link-path,
+:root[data-theme='light'] .revision-item { color: #526476; }
+:root[data-theme='light'] .revision-panel { border-top-color: #d7e0e8; }
+:root[data-theme='light'] .settings-header,
+:root[data-theme='light'] .settings-footer,
+:root[data-theme='light'] .settings-section { border-color: #d8e0e8; }
+:root[data-theme='light'] .settings-close { color: #5d7083; }
+:root[data-theme='light'] .settings-close:hover { color: #152638; }
+:root[data-theme='light'] .settings-tabs {
+  background: #f1f4f8;
+  border-bottom-color: #d5dee8;
+}
+:root[data-theme='light'] .settings-tabs button { color: #546475; }
+:root[data-theme='light'] .settings-tabs button.active {
+  color: #1d3e60;
+  background: #ffffff;
+  border-bottom-color: #286da8;
+}
+:root[data-theme='light'] .settings-tabs button:hover:not(:disabled) {
+  color: #1d3e60;
+  background: #e5edf5;
+}
+:root[data-theme='light'] .settings-footer { background: #f1f4f8; }
+:root[data-theme='light'] .settings-section h3,
+:root[data-theme='light'] .settings-project-intro h3 { color: #25374a; }
+:root[data-theme='light'] .settings-section label,
+:root[data-theme='light'] .settings-fields label { color: #3e5063; }
+:root[data-theme='light'] .settings-description { color: #586b7d; }
+
+/* Command palette and draggable title-bar customization. */
+:root[data-theme='light'] .command-palette {
+  background: #ffffff;
+  color: #243446;
+  border-color: #c1cfdd;
+  box-shadow: 0 20px 65px #24344640;
+}
+:root[data-theme='light'] .command-palette::backdrop { background: #2230406e; }
+:root[data-theme='light'] .palette-search {
+  background: #f2f5f9;
+  color: #5c6c7d;
+  border-bottom-color: #d2dde7;
+}
+:root[data-theme='light'] .palette-search input { color: #213449; }
+:root[data-theme='light'] .palette-search kbd,
+:root[data-theme='light'] .palette-command-meta kbd {
+  color: #445971;
+  background: #e8eef5;
+  border-color: #c7d2de;
+}
+:root[data-theme='light'] .palette-result { color: #243649; }
+:root[data-theme='light'] .palette-result:hover:not(:disabled),
+:root[data-theme='light'] .palette-result.active {
+  background: #e7f0fa;
+  border-color: #9bb8d5;
+}
+:root[data-theme='light'] .palette-empty { color: #64768a; }
+:root[data-theme='light'] .palette-footer {
+  color: #596b7d;
+  border-top-color: #d2dce6;
+}
+:root[data-theme='light'] .titlebar-customizer {
+  color: #25374a;
+  background: #ffffff;
+  border-color: #c4d0dc;
+  box-shadow: 0 18px 55px #23334540;
+}
+:root[data-theme='light'] .titlebar-customizer-header,
+:root[data-theme='light'] .titlebar-customizer-footer { border-color: #d6dfe8; }
+:root[data-theme='light'] .titlebar-customize-close { color: #56697b; }
+:root[data-theme='light'] .titlebar-customize-item:hover { background: #edf3f9; }
+:root[data-theme='light'] .titlebar-customize-symbol { color: #386891; }
+:root[data-theme='light'] .titlebar-customize-actions button,
+:root[data-theme='light'] .titlebar-pin-toggle,
+:root[data-theme='light'] .titlebar-customizer-footer button {
+  color: #334c64;
+  background: #f2f6fa;
+  border-color: #c4d0dc;
+}
+:root[data-theme='light'] .titlebar-customize-empty { color: #607386; }
+
+/* Revision comparison dialog is also part of the app-wide theme. */
+:root[data-theme='light'] .revision-diff-overlay { background: #22304065; }
+:root[data-theme='light'] .revision-diff-dialog {
+  color: #243446;
+  background: #ffffff;
+  border-color: #c3cfdb;
+  box-shadow: 0 20px 65px #22304040;
+}
+:root[data-theme='light'] .revision-diff-header {
+  background: #f3f6f9;
+  border-bottom-color: #d1dce6;
+}
+:root[data-theme='light'] .revision-diff-header p,
+:root[data-theme='light'] .revision-diff-selector label { color: #5a6b7d; }
+:root[data-theme='light'] .revision-close { color: #40566c; }
+:root[data-theme='light'] .revision-diff-toolbar,
+:root[data-theme='light'] .revision-diff-footer {
+  background: #f1f5f9;
+  border-color: #d3dee8;
+  color: #526477;
+}
+:root[data-theme='light'] .revision-diff-selector select {
+  background: #ffffff;
+  color: #24374b;
+  border-color: #c1ceda;
+}
+:root[data-theme='light'] .revision-arrow,
+:root[data-theme='light'] .revision-position,
+:root[data-theme='light'] .revision-stat.neutral { color: #546e85; }
+:root[data-theme='light'] .revision-diff-summary,
+:root[data-theme='light'] .revision-diff-headings { border-color: #d0dbe5; }
+:root[data-theme='light'] .revision-stat { border-color: #c8d4e0; }
+:root[data-theme='light'] .revision-stat.added {
+  color: #166141;
+  background: #e5f7ed;
+}
+:root[data-theme='light'] .revision-stat.removed {
+  color: #9b3434;
+  background: #fbe9e9;
+}
+:root[data-theme='light'] .revision-stat.changed {
+  color: #795b0c;
+  background: #fbf3d9;
+}
+:root[data-theme='light'] .revision-showall { color: #44576b; }
+:root[data-theme='light'] .revision-diff-summary button,
+:root[data-theme='light'] .revision-diff-footer button {
+  background: #f5f7fa;
+  color: #34475a;
+  border-color: #c3d0dc;
+}
+:root[data-theme='light'] .revision-diff-headings { background: #ecf1f6; }
+:root[data-theme='light'] .revision-diff-headings span {
+  color: #405268;
+  border-color: #d3dee8;
+}
+:root[data-theme='light'] .revision-diff-scroll { background: #ffffff; }
+:root[data-theme='light'] .revision-diff-before { border-right-color: #d5dee8; }
+:root[data-theme='light'] .revision-diff-cell code { color: #2d3d4f; }
+:root[data-theme='light'] .revision-line-number {
+  color: #657b91;
+  background: #f0f4f8;
+  border-right-color: #d7e0e9;
+}
+:root[data-theme='light'] .revision-diff-changed .revision-diff-before,
+:root[data-theme='light'] .revision-diff-removed .revision-diff-before { background: #ffe9e9; }
+:root[data-theme='light'] .revision-diff-changed .revision-diff-after,
+:root[data-theme='light'] .revision-diff-added .revision-diff-after { background: #e6f7ec; }
+:root[data-theme='light'] .revision-diff-changed .revision-diff-before code,
+:root[data-theme='light'] .revision-diff-removed .revision-diff-before code { color: #902f2f; }
+:root[data-theme='light'] .revision-diff-changed .revision-diff-after code,
+:root[data-theme='light'] .revision-diff-added .revision-diff-after code { color: #146341; }
+:root[data-theme='light'] .revision-diff-gap {
+  color: #62798e;
+  background: #f0f3f7;
+  border-color: #c6d2df;
+}
+:root[data-theme='light'] .revision-diff-empty { color: #637487; }
+:root[data-theme='light'] .revision-diff-error { color: #a02d2d; }
