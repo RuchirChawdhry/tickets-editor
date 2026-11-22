@@ -2,8 +2,14 @@
   import { onMount, tick } from 'svelte'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
   import CommandPalette from './CommandPalette.svelte'
+  import TitlebarCustomize from './TitlebarCustomize.svelte'
+  import {
+    DEFAULT_TITLEBAR_PINS, PIN_STORAGE_KEY, loadTitlebarPins, saveTitlebarPins,
+    pinCommand, unpinCommand, shiftPinnedCommand, reorderPinnedCommands,
+    pinnedTitlebarCommands,
+  } from './titlebar-pins'
   import { commandForShortcut, createCommands, runCommand } from './commands'
-  import type { Command, CommandId, CommandHandlers } from './commands'
+  import type { Command, CommandId, CommandHandlers, StaticCommandId } from './commands'
   import { parseTicketDraft } from '../../shared/ticket-diagnostics'
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
@@ -21,6 +27,11 @@
   let editProjectUuid = ''
   let projectFormOpen = false
   let commandPaletteOpen = false
+  let titlebarCustomizeOpen = false
+  let pinnedCommandIds: StaticCommandId[] = [...DEFAULT_TITLEBAR_PINS]
+  let draggedPinId: StaticCommandId | null = null
+  let dropTargetPinId: StaticCommandId | null = null
+  let customizeToggle: HTMLButtonElement
   let search = ''
   let draft: TicketObject = {}
   let rawJson = ''
@@ -309,6 +320,11 @@
   }
 
   onMount(() => {
+    pinnedCommandIds = loadTitlebarPins(pinStorage)
+    const onStorageChange = (event: StorageEvent): void => {
+      if (event.key === PIN_STORAGE_KEY) pinnedCommandIds = loadTitlebarPins(pinStorage)
+    }
+    window.addEventListener('storage', onStorageChange)
     const unsubscribe = window.ticketsEditor.onProjectLinkChanged(() => { void verifyLink(false) })
     void (async () => {
       try {
@@ -320,7 +336,10 @@
         showError(cause)
       }
     })()
-    return unsubscribe
+    return () => {
+      unsubscribe()
+      window.removeEventListener('storage', onStorageChange)
+    }
   })
 
   function addProjectForm(): void {
@@ -578,6 +597,83 @@
     selectionAnchor = ''
   }
 
+  const pinStorage = {
+    getItem: (key: string): string | null => window.localStorage.getItem(key),
+    setItem: (key: string, value: string): void => window.localStorage.setItem(key, value),
+  }
+
+  function updateTitlebarPins(next: StaticCommandId[]): void {
+    pinnedCommandIds = next
+    if (!saveTitlebarPins(pinStorage, next)) {
+      error = 'Title-bar commands changed, but your preferences could not be saved.'
+    }
+  }
+
+  function addTitlebarPin(id: StaticCommandId): void {
+    updateTitlebarPins(pinCommand(pinnedCommandIds, id))
+  }
+
+  function removeTitlebarPin(id: StaticCommandId): void {
+    updateTitlebarPins(unpinCommand(pinnedCommandIds, id))
+  }
+
+  function moveTitlebarPin(id: StaticCommandId, direction: -1 | 1): void {
+    updateTitlebarPins(shiftPinnedCommand(pinnedCommandIds, id, direction))
+  }
+
+  function resetTitlebarPins(): void {
+    updateTitlebarPins([...DEFAULT_TITLEBAR_PINS])
+  }
+
+  function openTitlebarCustomize(): void {
+    titlebarCustomizeOpen = true
+  }
+
+  function closeTitlebarCustomize(): void {
+    titlebarCustomizeOpen = false
+    void tick().then(() => customizeToggle?.focus())
+  }
+
+  function toggleTitlebarCustomize(): void {
+    if (titlebarCustomizeOpen) closeTitlebarCustomize()
+    else openTitlebarCustomize()
+  }
+
+  function onTitlebarOutsidePointer(event: PointerEvent): void {
+    if (!titlebarCustomizeOpen) return
+    const target = event.target
+    if (!(target instanceof Element)) return
+    if (target.closest('.titlebar-customizer') ||
+      target.closest('[data-titlebar-customize]')) return
+    titlebarCustomizeOpen = false
+  }
+
+  function onPinDragStart(event: DragEvent, id: StaticCommandId): void {
+    if (!event.dataTransfer) return
+    draggedPinId = id
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', id)
+  }
+
+  function onPinDragOver(event: DragEvent, id: StaticCommandId): void {
+    if (!draggedPinId || draggedPinId === id) return
+    event.preventDefault()
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move'
+    dropTargetPinId = id
+  }
+
+  function onPinDrop(event: DragEvent, id: StaticCommandId): void {
+    if (!draggedPinId) return
+    event.preventDefault()
+    updateTitlebarPins(reorderPinnedCommands(pinnedCommandIds, draggedPinId, id))
+    onPinDragEnd()
+  }
+
+  function onPinDragEnd(): void {
+    draggedPinId = null
+    dropTargetPinId = null
+  }
+
   const handlers: CommandHandlers = {
     'palette.open': openCommandPalette,
     'project.register': addProjectForm,
@@ -647,6 +743,13 @@
   }
 
   function onHotkey(event: KeyboardEvent): void {
+    if (titlebarCustomizeOpen) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeTitlebarCustomize()
+      }
+      return
+    }
     if (event.defaultPrevented || event.isComposing || commandPaletteOpen ||
       projectFormOpen || diffOpen) return
 
@@ -671,7 +774,7 @@
 
 </script>
 
-<svelte:window onkeydown={onHotkey} />
+<svelte:window onkeydown={onHotkey} onpointerdown={onTitlebarOutsidePointer} />
 
 <div class="app">
   <header class="titlebar">
@@ -684,13 +787,62 @@
     </div>
     <div class="drag-space"></div>
     <div class="title-actions">
-      <button class="title-action" title="Search tickets (Ctrl/⌘+K)" onclick={() => executeCommand('project.search')}>⌕</button>
-      <button class="title-action" title="Commands (Ctrl/⌘+Shift+P)" aria-label="Open command palette" onclick={() => executeCommand('palette.open')}>≡</button>
-      <button class="title-action" title="Save (Ctrl/⌘+S)" disabled={!dirty || !!parseError || busy} onclick={() => executeCommand('ticket.save')}>▣</button>
-      <button class="title-action" title="Import JSON/JSONL" disabled={!projectUuid || busy} onclick={() => executeCommand('project.import')}>⇩</button>
-      <button class="title-action" title="New ticket" disabled={!projectUuid || busy} onclick={() => executeCommand('ticket.new')}>+</button>
+      <div class="title-pins" role="group" aria-label="Pinned commands">
+        {#each pinnedTitlebarCommands(pinnedCommandIds, buildCommands(
+          projectUuid, ticketUuid, dirty, !!parseError, busy,
+          selectedTicketIds.length, revisions.length, projects,
+        )) as command (command.id)}
+          <span
+            class="title-pin-slot"
+            class:drop-target={dropTargetPinId === command.id}
+            draggable="true"
+            ondragstart={(event) => onPinDragStart(event, command.id as StaticCommandId)}
+            ondragover={(event) => onPinDragOver(event, command.id as StaticCommandId)}
+            ondrop={(event) => onPinDrop(event, command.id as StaticCommandId)}
+            ondragend={onPinDragEnd}
+            oncontextmenu={(event) => {
+              event.preventDefault()
+              openTitlebarCustomize()
+            }}
+          >
+            <button
+              class="title-action title-pinned-action"
+              type="button"
+              title={command.title + ' · Right-click to customize'}
+              aria-label={command.title}
+              disabled={!command.enabled}
+              onclick={() => executeCommand(command.id)}
+            >{command.icon}</button>
+          </span>
+        {/each}
+      </div>
+      <button
+        bind:this={customizeToggle}
+        class="title-action titlebar-customize-trigger"
+        type="button"
+        data-titlebar-customize
+        aria-label="Customize title-bar commands"
+        aria-haspopup="dialog"
+        aria-expanded={titlebarCustomizeOpen}
+        title="Pin or reorder title-bar commands"
+        onclick={toggleTitlebarCustomize}
+      >+</button>
     </div>
     <div class="caption-reserved"></div>
+    {#if titlebarCustomizeOpen}
+      <TitlebarCustomize
+        commands={buildCommands(
+          projectUuid, ticketUuid, dirty, !!parseError, busy,
+          selectedTicketIds.length, revisions.length, projects,
+        )}
+        pinned={pinnedCommandIds}
+        pin={addTitlebarPin}
+        unpin={removeTitlebarPin}
+        move={moveTitlebarPin}
+        reset={resetTitlebarPins}
+        close={closeTitlebarCustomize}
+      />
+    {/if}
   </header>
 
   <div class="subbar">
