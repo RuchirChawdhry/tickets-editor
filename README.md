@@ -1,6 +1,6 @@
 # TicketsEditor
 
-TicketsEditor is a desktop application for reviewing and editing task tickets. It keeps tickets from different projects in one local library.
+TicketsEditor is a cross-platform desktop application for reviewing and editing task tickets. It keeps tickets from different projects in one local library.
 
 Edit common fields in a form. Use the JSON editor to change any field, including nested data.
 
@@ -25,7 +25,7 @@ npm install
 npm run dev
 ```
 
-The application uses Electron, Svelte, TypeScript, and SQLite.
+The application uses Electron, Svelte, TypeScript, and SQLite. Windows uses an integrated title bar; macOS and Linux use native window decorations.
 
 ## Create or open a project
 

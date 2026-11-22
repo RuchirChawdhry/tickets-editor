@@ -1,12 +1,15 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import JsonCodeEditor from './JsonCodeEditor.svelte'
+  import { shortcutPrefix } from '../../shared/desktop-platform'
   import { parseTicketDraft } from '../../shared/ticket-diagnostics'
   import RevisionDiffDialog from './RevisionDiffDialog.svelte'
   import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
   import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
 
+  const platform = window.ticketsEditor.platform
+  const shortcutKey = shortcutPrefix(platform)
   let projects: ProjectRecord[] = []
   let tickets: TicketRecord[] = []
   let summary: WorkspaceSummary = { projectCount: 0, ticketCount: 0 }
@@ -582,7 +585,7 @@
 
 <svelte:window onkeydown={onHotkey} />
 
-<div class="app">
+<div class="app" data-platform={platform}>
   <header class="titlebar">
     <div class="brand"><span class="brand-icon">T</span>TicketsEditor</div>
     <div class="tabs">
@@ -593,12 +596,14 @@
     </div>
     <div class="drag-space"></div>
     <div class="title-actions">
-      <button class="title-action" title="Search (Ctrl+K)" onclick={() => document.getElementById('ticket-search')?.focus()}>⌕</button>
-      <button class="title-action" title="Save (Ctrl+S)" disabled={!dirty || !!parseError || busy} onclick={() => void saveTicket()}>▣</button>
+      <button class="title-action" title={'Search (' + shortcutKey + 'K)'} onclick={() => document.getElementById('ticket-search')?.focus()}>⌕</button>
+      <button class="title-action" title={'Save (' + shortcutKey + 'S)'} disabled={!dirty || !!parseError || busy} onclick={() => void saveTicket()}>▣</button>
       <button class="title-action" title="Import JSON/JSONL" disabled={!projectUuid || busy} onclick={() => void importTickets()}>⇩</button>
       <button class="title-action" title="New ticket" disabled={!projectUuid || busy} onclick={() => void createTicket()}>+</button>
     </div>
-    <div class="caption-reserved"></div>
+    {#if platform === 'win32'}
+      <div class="caption-reserved"></div>
+    {/if}
   </header>
 
   <div class="subbar">

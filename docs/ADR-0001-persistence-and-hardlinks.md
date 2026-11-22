@@ -1,30 +1,30 @@
-# ADR 0001 — SQLite library, AppData JSON, and project file links
+# ADR 0001 — SQLite library, application-data JSON, and project file links
 
 Status: Accepted. Link creation, verification, explicit reconciliation and backup-before-repair are implemented. Crash-atomic cross-store writes remain future work. Automatic three-way merging is intentionally excluded.
 
 ## Canonical storage
 
-TicketsEditor keeps one canonical JSON document per project under the Electron `app.getPath('userData')` directory on Windows, independent of the app installation directory.
+TicketsEditor keeps one canonical JSON document per project under Electron's `app.getPath('userData')` directory on every supported operating system, independent of the installation directory.
 
 ~~~text
-%APPDATA%/TicketsEditor/
+<userData>/
   tickets-editor.sqlite
   projects/
     <project-uuid-A>/tickets.json
     <project-uuid-B>/tickets.json
 
-C:/Projects/DLLViewer/.tickets        (hardlink or symlink to A)
-D:/Projects/CourseStudio/.tickets     (symlink to B)
+<project-A>/.tickets        (hardlink or symlink to A)
+<project-B>/.tickets        (symlink to B)
 ~~~
 
 Each `.tickets` is a reference to the matching AppData `tickets.json`, never another independent JSON copy. SQLite stores the searchable multi-project ticket library and revision history. The canonical file must always be valid JSON; source JSONL is normalized to JSON.
 
 ## Link modes
 
-| Mode | Windows behavior |
+| Mode | Behavior |
 | --- | --- |
-| `hardlink` | Same volume as canonical AppData file; same underlying file identity. Does not require symlink privilege. |
-| `symlink` | Absolute path to canonical AppData file; permits different local volumes. Windows may require Developer Mode or elevated symbolic-link privileges. |
+| `hardlink` | Shares the canonical file's identity. Both paths must be on the same filesystem. |
+| `symlink` | Points to the canonical file by absolute path. Can cross filesystems. Windows may require Developer Mode or symbolic-link privileges. |
 
 The user chooses the mode explicitly from project settings. Failed link setup must not silently fall back to a copy, symlink, or hardlink of another type. A preexisting unrelated `.tickets` is never overwritten.
 

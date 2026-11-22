@@ -4,7 +4,8 @@ button,input,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity
 input,textarea{background:#252b33;color:#edf0f5;border:1px solid #424b56;border-radius:4px;outline:none;padding:9px;min-width:0}
 input:focus,textarea:focus{border-color:#719acc}
 .app{height:100%;display:flex;flex-direction:column;min-width:0}
-.titlebar{height:42px;min-height:42px;display:flex;align-items:stretch;background:#20242a;border-bottom:1px solid #353b44;-webkit-app-region:drag;user-select:none}
+.titlebar{height:42px;min-height:42px;display:flex;align-items:stretch;background:#20242a;border-bottom:1px solid #353b44;-webkit-app-region:no-drag;user-select:none}
+.app[data-platform='win32'] .titlebar{-webkit-app-region:drag}
 .brand{display:flex;align-items:center;gap:9px;padding:0 16px;font-size:12px;font-weight:650;-webkit-app-region:no-drag}
 .brand-icon{display:grid;place-items:center;width:19px;height:19px;border-radius:3px;background:#4079bd}
 .tabs{display:flex;align-items:stretch;max-width:43vw;overflow-x:auto;overflow-y:hidden;-webkit-app-region:no-drag}

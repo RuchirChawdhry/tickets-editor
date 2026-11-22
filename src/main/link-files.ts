@@ -5,6 +5,7 @@ import {
 } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import type { LinkMode } from '../shared/contracts'
+import { linkOperationError } from './link-errors'
 
 export function canonicalTicketsPath(userData: string, projectUuid: string): string {
   if (!/^[a-f0-9-]{36}$/iu.test(projectUuid)) throw new Error('Invalid project UUID')
@@ -38,7 +39,7 @@ export function ensureCanonical(path: string, documentJson: string): void {
   }
   const text = readFileSync(path, 'utf8')
   JSON.parse(text)
-  if (text !== documentJson) throw new Error('AppData tickets.json differs from SQLite. Reconcile before linking.')
+  if (text !== documentJson) throw new Error('Application-data tickets.json differs from SQLite. Reconcile before linking.')
 }
 
 // Hardlinks use file identity; symlinks must resolve to the canonical target.
@@ -71,13 +72,8 @@ export function createProjectLink(
     if (mode === 'hardlink') linkSync(canonical, target)
     else symlinkSync(resolve(canonical), target, 'file')
   } catch (error) {
-    if (mode === 'hardlink' && (error as NodeJS.ErrnoException).code === 'EXDEV') {
-      throw new Error('Hardlinks require AppData and the project directory to be on the same volume. Choose a symbolic link.')
-    }
-    if (mode === 'symlink' && (error as NodeJS.ErrnoException).code === 'EPERM') {
-      throw new Error('Windows denied symbolic link creation. Enable Developer Mode or run with the required privileges.')
-    }
-    throw error
+    throw linkOperationError(mode, error);
+
   }
   if (!verifyFileLink(target, canonical, mode)) {
     throw new Error('The .tickets link was created but could not be verified.')
