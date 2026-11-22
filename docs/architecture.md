@@ -59,9 +59,20 @@ See ADR-0001 for both link modes and conflict handling.
 
 Keep nodeIntegration disabled and contextIsolation enabled. Expose narrow typed IPC operations; validate input and sender identity in main. Avoid evaluating arbitrary code or interpolating untrusted ticket fields as HTML. Native file access must be limited to explicitly configured project paths.
 
-## Planned command registry
+## Command registry and palette
 
-Menu items, title-bar pinned commands, keyboard shortcuts, ticket context menus, and Alfred-like Ctrl+K / Ctrl+Shift+P command palette share a single command registry. Pinned actions should not have separate implementations.
+`src/renderer/src/commands.ts` defines stable command IDs, labels, search keywords, keyboard
+shortcuts, availability rules, and dispatch handlers. The title bar and ticket action buttons
+call this registry instead of creating separate action implementations.
+
+The command palette uses a native modal dialog in the Svelte renderer. It filters commands by
+title, description, and keywords. Arrow keys navigate enabled actions; Enter runs an action;
+Esc closes the palette. Disabled actions remain visible. Ctrl/Cmd+Shift+P opens the palette,
+and Ctrl/Cmd+K focuses ticket search. Commands use the existing ticket service and confirmation
+dialogs; the palette does not bypass project or editing checks.
+
+Dynamic per-project navigation, customizable keybindings, and context menus remain separate
+future enhancements.
 
 ## Platform coverage
 

@@ -23,11 +23,11 @@ Generate each project's canonical `tickets.json` under Windows AppData at `<app.
 
 ### 3. Multi-document UX
 
-Add integrated document tabs (not ticket tabs), pinned commands, shared command registry, status bar, navigation search and resizable panes. The navigation cards say Ticket <number>, not the ticket ID; the ID appears at the bottom-right.
+Add integrated document tabs (not ticket tabs), pinned commands, status bar, navigation search and resizable panes. A shared command registry and searchable command palette are implemented; resizable panes remain. The navigation cards say Ticket <number>, not the ticket ID; the ID appears at the bottom-right.
 
 ### 4. Editing
 
-Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Current editor supports multi-select with Ctrl/Shift, array field batch edits, text replacement, nested-document preservation, duplication, move up/down, delete selection and export. Add schema-driven nested-field widgets, keyboard command registry, CodeMirror and undo/redo.
+Build dynamic template-driven human pane and CodeMirror JSON pane. Both edit shared state. Keep comfortably formatted JSON in the editor. Current editor supports multi-select with Ctrl/Shift, array field batch edits, text replacement, nested-document preservation, duplication, move up/down, delete selection and export. Add schema-driven nested-field widgets. CodeMirror, shared command shortcuts and editor undo/redo are implemented.
 
 ### 5. Import/export/validation
 

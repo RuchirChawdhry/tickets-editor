@@ -15,6 +15,7 @@
   let searchInput: HTMLInputElement;
   let query = '';
   let selectedIndex = 0;
+  let didExecute = false;
 
   $: matches = searchCommands(commands, query);
 
@@ -25,7 +26,7 @@
 
     return () => {
       if (dialog.open) dialog.close();
-      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) {
+      if (!didExecute && previousFocus instanceof HTMLElement && previousFocus.isConnected) {
         previousFocus.focus();
       }
     };
@@ -33,14 +34,14 @@
 
   function selectCommand(command: Command): void {
     if (!command.enabled) return;
+    didExecute = true;
     execute(command.id);
   }
 
   function onQuery(event: Event): void {
     query = (event.currentTarget as HTMLInputElement).value;
-    selectedIndex = matches.length > 0
-      ? Math.max(0, matches.findIndex((command) => command.enabled))
-      : -1;
+    const results = searchCommands(commands, query);
+    selectedIndex = results.findIndex((command) => command.enabled);
   }
 
   function onSearchKeydown(event: KeyboardEvent): void {

@@ -56,6 +56,15 @@ A ticket can contain these fields:
 
 TicketsEditor also keeps custom fields and nested objects. Edit these fields in the JSON pane.
 
+### Command palette
+
+Press **Ctrl+Shift+P** or **Cmd+Shift+P** to open the command palette. You can also select
+**Commands** in the title bar. Type to find an action, use the arrow keys to select it,
+and press **Enter** to run it. Press **Esc** to close the palette.
+
+Commands share their actions with the title bar and ticket controls. Unavailable actions
+remain visible but cannot run. Use **Ctrl+K** or **Cmd+K** to focus ticket search.
+
 ### Edit multiple tickets
 
 Use **Ctrl-click** to select individual tickets. Use **Shift-click** to select a range.

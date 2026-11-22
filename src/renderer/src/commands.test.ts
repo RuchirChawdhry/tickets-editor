@@ -106,6 +106,15 @@ describe('shared command registry', () => {
     expect(commandForShortcut(commands, { ...event, metaKey: true })).toBeUndefined();
   });
 
+  it('does not dispatch a disabled shortcut even when the key matches', () => {
+    const { commands, spy } = setup();
+    const event = { key: 's', shiftKey: false, altKey: false, ctrlKey: true, metaKey: false };
+    const match = commandForShortcut(commands, event);
+    expect(match?.id).toBe('ticket.save');
+    expect(runCommand(commands, match!.id)).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it('cycles through enabled palette options', () => {
     const commands = setup().commands;
     const firstEnabled = commands.findIndex((command) => command.enabled);
