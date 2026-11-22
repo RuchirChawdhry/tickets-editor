@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   commandForShortcut,
+  formatShortcut,
   commandIds,
   createCommands,
   nextEnabledIndex,
@@ -86,23 +87,23 @@ describe('shared command registry', () => {
     expect(results.at(-1)?.enabled).toBe(false);
   });
 
-  it('uses Ctrl on Windows/Linux and Cmd on macOS', () => {
+  it('supports Ctrl and Cmd without depending on platform detection', () => {
     const commands = setup({ hasProject: true }).commands;
     const key = { key: 'k', shiftKey: false, altKey: false, ctrlKey: true, metaKey: false };
-    expect(commandForShortcut(commands, key, 'win32')?.id).toBe('project.search');
-    expect(commandForShortcut(commands, key, 'linux')?.id).toBe('project.search');
-    expect(commandForShortcut(commands, key, 'darwin')).toBeUndefined();
-    expect(commandForShortcut(commands, { ...key, ctrlKey: false, metaKey: true }, 'darwin')?.id)
+    expect(commandForShortcut(commands, key)?.id).toBe('project.search');
+    expect(commandForShortcut(commands, { ...key, ctrlKey: false, metaKey: true })?.id)
       .toBe('project.search');
+    expect(commandForShortcut(commands, { ...key, key: 'f' })?.id).toBe('project.search');
+    expect(formatShortcut('Mod+Shift+P')).toBe('Ctrl/⌘+Shift+P');
   });
 
   it('requires exact modifiers for the palette shortcut', () => {
     const commands = setup().commands;
     const event = { key: 'P', shiftKey: true, altKey: false, ctrlKey: true, metaKey: false };
-    expect(commandForShortcut(commands, event, 'win32')?.id).toBe('palette.open');
-    expect(commandForShortcut(commands, { ...event, shiftKey: false }, 'win32')).toBeUndefined();
-    expect(commandForShortcut(commands, { ...event, altKey: true }, 'win32')).toBeUndefined();
-    expect(commandForShortcut(commands, { ...event, metaKey: true }, 'win32')).toBeUndefined();
+    expect(commandForShortcut(commands, event)?.id).toBe('palette.open');
+    expect(commandForShortcut(commands, { ...event, shiftKey: false })).toBeUndefined();
+    expect(commandForShortcut(commands, { ...event, altKey: true })).toBeUndefined();
+    expect(commandForShortcut(commands, { ...event, metaKey: true })).toBeUndefined();
   });
 
   it('cycles through enabled palette options', () => {

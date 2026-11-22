@@ -46,6 +46,7 @@ export interface Command {
   group: 'Workspace' | 'Tickets' | 'Editing' | 'Selection';
   keywords: string;
   shortcut?: string;
+  shortcutAliases?: string[];
   enabled: boolean;
   run: CommandHandler;
 }
@@ -83,7 +84,7 @@ const specs: CommandSpec[] = [
     id: 'project.search', title: 'Search tickets',
     description: 'Focus the ticket search field',
     group: 'Workspace', keywords: 'find filter locate',
-    shortcut: 'Mod+F', available: (c) => c.hasProject,
+    shortcut: 'Mod+K', shortcutAliases: ['Mod+F'], available: (c) => c.hasProject,
   },
   {
     id: 'project.import', title: 'Import tickets',
@@ -274,20 +275,25 @@ export interface ShortcutEvent {
 export function commandForShortcut(
   commands: Command[],
   event: ShortcutEvent,
-  platform: string,
 ): Command | undefined {
-  const useMeta = platform === 'darwin';
-  const modifier = useMeta ? event.metaKey : event.ctrlKey;
-  if (!modifier || event.altKey || (useMeta ? event.ctrlKey : event.metaKey)) return;
+  if ((!event.ctrlKey && !event.metaKey) || event.altKey ||
+    (event.ctrlKey && event.metaKey)) return;
 
   return commands.find((command) => {
-    if (!command.shortcut) return false;
-    const parts = command.shortcut.split('+');
-    const key = parts.at(-1)?.toLocaleLowerCase();
-    return parts.includes('Mod') &&
-      parts.includes('Shift') === event.shiftKey &&
-      event.key.toLocaleLowerCase() === key;
+    const shortcuts = [command.shortcut, ...(command.shortcutAliases ?? [])];
+    return shortcuts.some((shortcut) => {
+      if (!shortcut) return false;
+      const parts = shortcut.split('+');
+      const key = parts.at(-1)?.toLocaleLowerCase();
+      return parts.includes('Mod') &&
+        parts.includes('Shift') === event.shiftKey &&
+        event.key.toLocaleLowerCase() === key;
+    });
   });
+}
+
+export function formatShortcut(shortcut: string): string {
+  return shortcut.replace('Mod', 'Ctrl/⌘');
 }
 
 export function nextEnabledIndex(
