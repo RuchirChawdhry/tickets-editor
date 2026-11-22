@@ -31,7 +31,7 @@ npm run build
 
 ## Scope of the initial scaffold
 
-The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Read-only visual revision diffs are available. Automatic merge UI, CodeMirror, undo/redo and configurable templates are still planned.
+The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Read-only visual revision diffs are available. CodeMirror, undo/redo and configurable templates are still planned. Automatic three-way merging is intentionally out of scope.
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 

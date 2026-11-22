@@ -19,7 +19,7 @@ Delivered: register/edit/remove project, absolute project-root validation, ticke
 
 ### 2. Managed .tickets file
 
-Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Provide **hardlink (same volume)** and **symlink (cross-volume)** setup choices, verify link identity, and refuse to overwrite unrelated files. Setup, verification, filesystem notifications, explicit external import, revision restore, backup-before-repair and conflicting file detection are implemented. Improve crash recovery, safe merge previews and link-type changes next. Do not create managed backing files inside projects.
+Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Provide **hardlink (same volume)** and **symlink (cross-volume)** setup choices, verify link identity, and refuse to overwrite unrelated files. Setup, verification, filesystem notifications, explicit external import, revision restore, backup-before-repair and conflicting file detection are implemented. Improve crash recovery and safe link-type changes later. Automatic three-way merging is out of scope: SQLite is the sole authoritative ticket store. Do not create managed backing files inside projects.
 
 ### 3. Multi-document UX
 
@@ -55,3 +55,7 @@ npm run dev
 ~~~
 
 On Windows, the native SQLite module may need a C++ build toolchain if a matching prebuilt binary is unavailable. The postinstall script invokes electron-builder's native dependency rebuild mechanism.
+
+## Explicitly excluded
+
+**Automatic three-way conflict merging** is not part of the product roadmap. SQLite is authoritative. The project `.tickets` link exists to expose the synchronized JSON file; future agent edits must use TicketsEditor's MCP operations that share the UI's ticket-management service. Keep integrity checks and exceptional recovery tools, without building a parallel edit/merge workflow.

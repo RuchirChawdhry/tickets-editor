@@ -1,6 +1,6 @@
 # ADR 0001 — SQLite library, AppData JSON, and project file links
 
-Status: Accepted. Link creation, verification, explicit reconciliation and backup-before-repair are implemented. Fully automatic merge and crash-atomic cross-store writes remain future work.
+Status: Accepted. Link creation, verification, explicit reconciliation and backup-before-repair are implemented. Crash-atomic cross-store writes remain future work. Automatic three-way merging is intentionally excluded.
 
 ## Canonical storage
 
@@ -46,7 +46,7 @@ The user chooses the mode explicitly from project settings. Failed link setup mu
 - External modifications to an intact `.tickets` file change canonical JSON and must not be silently overwritten.
 - File watchers refresh link health in the renderer; users explicitly import external JSON. The import stores both old SQLite content and external JSON in AppData recovery files and writes a new SQLite revision.
 - Some text editors replace `.tickets` instead of writing through it. This can sever hardlinks or replace symlinks. Detect and report broken links. Reconcile changes before offering destructive repair.
-- The application can restore a selected SQLite revision or overwrite the AppData JSON from SQLite after user confirmation and recovery snapshots. It detects broken links and allows explicit repair, backing up detached contents first. Automatic three-way merging, cross-store crash-atomic commits and safe link-type switching are future milestones.
+- The application can restore a selected SQLite revision or overwrite the AppData JSON from SQLite after user confirmation and recovery snapshots. It detects broken links and allows explicit repair, backing up detached contents first. Cross-store crash-atomic commits and safe link-type switching are future milestones; automatic three-way merging is not planned.
 
 ## Explicit constraints
 
