@@ -10,6 +10,10 @@ on:
     branches:
       - 'windows-visual-*'
 
+concurrency:
+  group: windows-visual-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
