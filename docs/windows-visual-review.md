@@ -1,8 +1,17 @@
 # Manual Windows visual review
 
-The workflow **Windows visual review (manual)** runs only after a user chooses
-**Run workflow** on GitHub. It has no push, pull-request, schedule, or
-workflow-run trigger.
+The workflow **Windows visual review (manual)** runs when explicitly dispatched
+or when a specially named visual-review ref is pushed. Ordinary commits to
+`main` and normal pull requests do not trigger it. Accepted ref patterns:
+
+- Tag: `windows-visual-*` (for example, `windows-visual-20261122`).
+- Branch: `windows-visual-*` (for example, `windows-visual-20261122-01`).
+
+The branch option lets the connected GitHub integration trigger the workflow
+without GitHub Actions dispatch permission: create a branch from the desired
+commit, then push a small request commit to that branch. GitHub's tag API is not
+available through the current integration, although you can push a matching
+tag yourself.
 
 ## Run it
 
