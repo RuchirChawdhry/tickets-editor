@@ -68,3 +68,8 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
 .link-operations button,.link-panel>button{padding:6px 9px;background:#343c46;color:#d6dfeb;border:1px solid #4a5562;border-radius:4px;font-size:12px}
 
 .project-dialog{position:relative;margin:0}
+
+.revision-panel{border-top:1px solid #465362;padding-top:10px;margin-top:7px}
+.revision-list{display:flex;flex-direction:column;max-height:180px;overflow:auto;gap:6px}
+.revision-item{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#bac7d4;font-size:11px}
+.revision-item button,.revision-panel button{padding:5px 8px;background:#343c46;color:#d6dfeb;border:1px solid #4a5562;border-radius:4px;font-size:11px}

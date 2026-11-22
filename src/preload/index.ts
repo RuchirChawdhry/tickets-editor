@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type {
-  ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus,
+  ImportResult, LinkMode, ProjectDocument, ProjectInput, ProjectLinkStatus, RevisionRecord,
   ProjectRecord, TicketObject, TicketRecord, TicketsEditorBridge, WorkspaceSummary
 } from '../shared/contracts'
 
@@ -28,7 +28,17 @@ const bridge: TicketsEditorBridge = {
     ipcRenderer.invoke('projects:link-status', id) as Promise<ProjectLinkStatus>,
   setupProjectLink: (id: string, mode: LinkMode) =>
     ipcRenderer.invoke('projects:link-setup', id, mode) as Promise<ProjectLinkStatus>,
-  importExternalChanges: (id: string) =>
-    ipcRenderer.invoke('projects:accept-external', id) as Promise<ImportResult | null>
+  importExternalChanges: (id: string, source: 'canonical' | 'detached' = 'canonical') =>
+    ipcRenderer.invoke('projects:accept-external', id, source) as Promise<boolean>,
+  recoverFromSqlite: (id: string) => ipcRenderer.invoke('projects:recover-from-sqlite', id) as Promise<boolean>,
+  repairProjectLink: (id: string) => ipcRenderer.invoke('projects:repair-link', id) as Promise<ProjectLinkStatus | null>,
+  listProjectRevisions: (id: string) => ipcRenderer.invoke('projects:revisions', id) as Promise<RevisionRecord[]>,
+  restoreProjectRevision: (id: string, revisionId: number) =>
+    ipcRenderer.invoke('projects:restore-revision', id, revisionId) as Promise<boolean>,
+  onProjectLinkChanged: (callback: () => void) => {
+    const listener = () => callback()
+    ipcRenderer.on('projects:link-changed', listener)
+    return () => ipcRenderer.removeListener('projects:link-changed', listener)
+  }
 }
 contextBridge.exposeInMainWorld('ticketsEditor', bridge)

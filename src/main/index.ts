@@ -1,5 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
-import { readFileSync } from 'node:fs'
+import { readFileSync, watch } from 'node:fs'
+import type { FSWatcher } from 'node:fs'
 import { extname, join } from 'node:path'
 import { getWorkspaceSummary, openWorkspaceDatabase } from './database'
 import type { WorkspaceDatabase } from './database'
@@ -9,12 +10,37 @@ import {
 } from './project-store'
 import {
   assertProjectFileUnchanged, getProjectLinkStatus, initializeProjectFile,
-  setupProjectLink, syncProjectFile
+  setupProjectLink, syncProjectFile, importExternalProjectFile, repairProjectLink,
+  recoverCanonicalFromSqlite, listProjectRevisions, restoreProjectRevision
 } from './project-links'
 import type { LinkMode, ProjectInput, TicketObject } from '../shared/contracts'
 
 let database: WorkspaceDatabase | undefined
 let mainWindow: BrowserWindow | undefined
+const watchers = new Map<string, FSWatcher[]>()
+let notifyHandle: ReturnType<typeof setTimeout> | undefined
+
+function refreshLinkWatchers(): void {
+  for (const handles of watchers.values()) for (const handle of handles) handle.close()
+  watchers.clear()
+  if (!database) return
+  for (const project of listProjects(database)) {
+    const handles: FSWatcher[] = []
+    const paths = [project.rootPath, join(app.getPath('userData'), 'projects', project.projectUuid)]
+    for (const path of paths) {
+      try {
+        handles.push(watch(path, () => {
+          if (notifyHandle) clearTimeout(notifyHandle)
+          notifyHandle = setTimeout(() => {
+            if (!mainWindow?.isDestroyed()) mainWindow.webContents.send('projects:link-changed')
+          }, 300)
+        }))
+      } catch { /* unavailable directories are checked again on window focus */ }
+    }
+    watchers.set(project.projectUuid, handles)
+  }
+}
+
 
 function authorized(event: Electron.IpcMainInvokeEvent): WorkspaceDatabase {
   if (!database || !mainWindow || event.sender !== mainWindow.webContents) {
@@ -56,6 +82,7 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
+  mainWindow.on('focus', () => mainWindow?.webContents.send('projects:link-changed'))
   mainWindow.on('closed', () => { mainWindow = undefined })
 }
 
@@ -80,15 +107,21 @@ function registerHandlers(): void {
       removeProject(db, project.projectUuid)
       throw error
     }
+    refreshLinkWatchers()
     return project
   })
   ipcMain.handle('projects:update', (event, id: string, input: ProjectInput) => {
     const db = authorized(event)
+    assertProjectFileUnchanged(db, app.getPath('userData'), id)
     const changed = updateProject(db, id, input)
     syncProjectFile(db, app.getPath('userData'), id)
+    refreshLinkWatchers()
     return changed
   })
-  ipcMain.handle('projects:remove', (event, id: string) => removeProject(authorized(event), id))
+  ipcMain.handle('projects:remove', (event, id: string) => {
+    removeProject(authorized(event), id)
+    refreshLinkWatchers()
+  })
   ipcMain.handle('tickets:list', (event, id: string) => listTickets(authorized(event), id))
   ipcMain.handle('projects:document', (event, id: string) => getProjectDocument(authorized(event), id))
   ipcMain.handle('tickets:create', (event, id: string) => {
@@ -134,24 +167,61 @@ function registerHandlers(): void {
     const source = readFileSync(filePath, 'utf8')
     return mutateProject(db, id, () => replaceProjectDocument(db, id, source, format))
   })
-  ipcMain.handle('projects:accept-external', async (event, id: string) => {
+  ipcMain.handle('projects:revisions', (event, id: string) =>
+    listProjectRevisions(authorized(event), id))
+  ipcMain.handle('projects:restore-revision', async (event, id: string, revisionId: number) => {
+    const db = authorized(event)
+    const choice = await dialog.showMessageBox(mainWindow!, {
+      type: 'warning',
+      buttons: ['Cancel', 'Restore revision'], defaultId: 0, cancelId: 0,
+      message: 'Restore this project revision?',
+      detail: 'The current SQLite document is preserved as a new revision before restoring.'
+    })
+    if (choice.response !== 1) return false
+    restoreProjectRevision(db, app.getPath('userData'), id, revisionId)
+    return true
+  })
+  ipcMain.handle('projects:accept-external', async (event, id: string, source: 'canonical' | 'detached' = 'canonical') => {
     const db = authorized(event)
     const status = getProjectLinkStatus(db, app.getPath('userData'), id)
-    if (status.health !== 'changed') throw new Error('No pending external changes')
-    const prompt = await dialog.showMessageBox(mainWindow!, {
+    if (source === 'canonical' && !['changed', 'conflict'].includes(status.health)) {
+      throw new Error('No external changes to import')
+    }
+    if (source === 'detached' && status.health !== 'broken') throw new Error('No detached .tickets file')
+    const choice = await dialog.showMessageBox(mainWindow!, {
       type: 'warning',
-      buttons: ['Cancel', 'Import external JSON'],
-      defaultId: 0,
-      cancelId: 0,
-      message: 'Import externally changed tickets.json?',
-      detail: 'This replaces the current SQLite project document. Your previous revision remains available for recovery.'
+      buttons: ['Cancel', 'Import external JSON'], defaultId: 0, cancelId: 0,
+      message: 'Replace the SQLite document with external tickets?',
+      detail: 'Both versions will be saved to AppData recovery snapshots before import.'
     })
-    if (prompt.response !== 1) return null
-    const source = readFileSync(status.canonicalPath, 'utf8')
-    const result = replaceProjectDocument(db, id, source, 'json')
-    syncProjectFile(db, app.getPath('userData'), id)
-    return result
+    if (choice.response !== 1) return false
+    importExternalProjectFile(db, app.getPath('userData'), id, source)
+    return true
   })
+  ipcMain.handle('projects:recover-from-sqlite', async (event, id: string) => {
+    const db = authorized(event)
+    const choice = await dialog.showMessageBox(mainWindow!, {
+      type: 'warning',
+      buttons: ['Cancel', 'Use SQLite version'], defaultId: 0, cancelId: 0,
+      message: 'Restore AppData JSON from SQLite?',
+      detail: 'Existing JSON and the SQLite state are backed up in AppData/recovery first.'
+    })
+    if (choice.response !== 1) return false
+    recoverCanonicalFromSqlite(db, app.getPath('userData'), id)
+    return true
+  })
+  ipcMain.handle('projects:repair-link', async (event, id: string) => {
+    const db = authorized(event)
+    const choice = await dialog.showMessageBox(mainWindow!, {
+      type: 'warning',
+      buttons: ['Cancel', 'Back up and repair'], defaultId: 0, cancelId: 0,
+      message: 'Repair the project .tickets link?',
+      detail: 'If .tickets has become a separate file, its contents will be backed up to AppData/recovery before replacing the path with a verified link.'
+    })
+    if (choice.response !== 1) return null
+    return repairProjectLink(db, app.getPath('userData'), id)
+  })
+
 }
 
 app.whenReady().then(() => {
@@ -159,6 +229,7 @@ app.whenReady().then(() => {
     database = openWorkspaceDatabase(join(app.getPath('userData'), 'tickets-editor.sqlite'))
     registerHandlers()
     createWindow()
+    refreshLinkWatchers()
   } catch (error) {
     dialog.showErrorBox('TicketsEditor failed to start', String(error))
     app.quit()
@@ -173,4 +244,10 @@ app.on('activate', () => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
-app.on('before-quit', () => { database?.close(); database = undefined })
+app.on('before-quit', () => {
+  if (notifyHandle) clearTimeout(notifyHandle)
+  for (const handles of watchers.values()) for (const handle of handles) handle.close()
+  watchers.clear()
+  database?.close()
+  database = undefined
+})

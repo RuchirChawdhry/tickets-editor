@@ -63,6 +63,11 @@ export interface ProjectLinkStatus {
   details: string
 }
 
+export interface RevisionRecord {
+  revisionId: number
+  createdAt: string
+}
+
 export interface TicketsEditorBridge {
   getVersion(): Promise<string>
   getSummary(): Promise<WorkspaceSummary>
@@ -79,5 +84,10 @@ export interface TicketsEditorBridge {
   importProjectDocument(projectUuid: string): Promise<ImportResult | null>
   getProjectLinkStatus(projectUuid: string): Promise<ProjectLinkStatus>
   setupProjectLink(projectUuid: string, mode: LinkMode): Promise<ProjectLinkStatus>
-  importExternalChanges(projectUuid: string): Promise<ImportResult | null>
+  importExternalChanges(projectUuid: string, source?: 'canonical' | 'detached'): Promise<boolean>
+  recoverFromSqlite(projectUuid: string): Promise<boolean>
+  repairProjectLink(projectUuid: string): Promise<ProjectLinkStatus | null>
+  listProjectRevisions(projectUuid: string): Promise<RevisionRecord[]>
+  restoreProjectRevision(projectUuid: string, revisionId: number): Promise<boolean>
+  onProjectLinkChanged(callback: () => void): () => void
 }

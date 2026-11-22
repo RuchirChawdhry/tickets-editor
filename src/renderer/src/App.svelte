@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import type { LinkMode, ProjectLinkStatus, ProjectRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
+  import type { LinkMode, ProjectLinkStatus, ProjectRecord, RevisionRecord, TicketObject, TicketRecord, WorkspaceSummary } from '../../shared/contracts'
   import { validateTicket } from '../../shared/ticket-validation'
 
   let projects: ProjectRecord[] = []
@@ -23,6 +23,7 @@
   let busy = false
   let linkMode: LinkMode = 'hardlink'
   let linkStatus: ProjectLinkStatus | null = null
+  let revisions: RevisionRecord[] = []
 
   function project(): ProjectRecord | undefined {
     return projects.find(item => item.projectUuid === projectUuid)
@@ -145,6 +146,7 @@
   }
 
   onMount(() => {
+    const unsubscribe = window.ticketsEditor.onProjectLinkChanged(() => { void verifyLink(false) })
     void (async () => {
       try {
         version = await window.ticketsEditor.getVersion()
@@ -155,6 +157,7 @@
         showError(cause)
       }
     })()
+    return unsubscribe
   })
 
   function addProjectForm(): void {
@@ -171,6 +174,13 @@
     projectName = current.name
     projectPath = current.rootPath
     projectFormOpen = true
+    void loadRevisions()
+  }
+
+  async function loadRevisions(): Promise<void> {
+    if (!projectUuid) return
+    try { revisions = await window.ticketsEditor.listProjectRevisions(projectUuid) }
+    catch (cause) { showError(cause) }
   }
 
   async function pickDirectory(): Promise<void> {
@@ -206,13 +216,13 @@
     }
   }
 
-  async function verifyLink(): Promise<void> {
+  async function verifyLink(announce = true): Promise<void> {
     if (!projectUuid) return
     try {
       linkStatus = await window.ticketsEditor.getProjectLinkStatus(projectUuid)
       if (linkStatus.mode) linkMode = linkStatus.mode
-      message = linkStatus.details
-      error = ''
+      if (announce) message = linkStatus.details
+      if (announce) error = ''
     } catch (cause) {
       showError(cause)
     }
@@ -232,16 +242,70 @@
     }
   }
 
-  async function importExternalChanges(): Promise<void> {
+  async function importExternalChanges(source: 'canonical' | 'detached' = 'canonical'): Promise<void> {
     if (!projectUuid || busy) return
     if (dirty && !window.confirm('Discard unsaved local changes before importing?')) return
     busy = true
     try {
-      const result = await window.ticketsEditor.importExternalChanges(projectUuid)
-      if (result) {
+      const imported = await window.ticketsEditor.importExternalChanges(projectUuid, source)
+      if (imported) {
         clearTicket()
         await reload()
-        message = 'Imported external changes into SQLite'
+        await loadRevisions()
+        message = 'External document imported into SQLite; changes preserved in recovery'
+        error = ''
+      }
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function recoverFromSqlite(): Promise<void> {
+    if (!projectUuid || busy) return
+    busy = true
+    try {
+      const completed = await window.ticketsEditor.recoverFromSqlite(projectUuid)
+      if (completed) {
+        await verifyLink()
+        message = 'AppData JSON restored from SQLite; backups saved'
+      }
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function repairLink(): Promise<void> {
+    if (!projectUuid || busy) return
+    busy = true
+    try {
+      const repaired = await window.ticketsEditor.repairProjectLink(projectUuid)
+      if (repaired) {
+        linkStatus = repaired
+        message = 'Project link repaired; detached contents backed up'
+        error = ''
+      }
+    } catch (cause) {
+      showError(cause)
+    } finally {
+      busy = false
+    }
+  }
+
+  async function restoreRevision(revisionId: number): Promise<void> {
+    if (!projectUuid || busy) return
+    if (dirty && !window.confirm('Discard unsaved edits before restoring?')) return
+    busy = true
+    try {
+      const restored = await window.ticketsEditor.restoreProjectRevision(projectUuid, revisionId)
+      if (restored) {
+        clearTicket()
+        await reload()
+        await loadRevisions()
+        message = 'Revision restored; previous state retained in history'
         error = ''
       }
     } catch (cause) {
@@ -373,6 +437,9 @@
     {#if linkStatus?.health === 'changed'}
       <button onclick={() => void importExternalChanges()}>Import external changes</button>
     {/if}
+    {#if linkStatus?.health === 'conflict'}
+      <button onclick={() => void recoverFromSqlite()}>Resolve from SQLite</button>
+    {/if}
     <button disabled={!projectUuid} onclick={editProjectForm}>Project settings</button>
     <button disabled={!projectUuid} onclick={() => void unregisterProject()}>Unregister</button>
   </div>
@@ -404,12 +471,35 @@
               <button onclick={() => void setupLink()} disabled={busy || linkStatus.health === 'linked'}>Set Up .tickets Link</button>
               <button onclick={() => void verifyLink()}>Verify Link</button>
             </div>
-            {#if linkStatus.health === 'changed'}
-              <button onclick={() => void importExternalChanges()} disabled={busy}>Import external edits</button>
+            {#if linkStatus.health === 'changed' || linkStatus.health === 'conflict'}
+              <button disabled={busy} onclick={() => void importExternalChanges()}>Keep external JSON (backup SQLite)</button>
+            {/if}
+            {#if linkStatus.health === 'conflict' || linkStatus.health === 'broken'}
+              <button disabled={busy} onclick={() => void recoverFromSqlite()}>Keep SQLite (backup JSON)</button>
             {/if}
             {#if linkStatus.health === 'broken'}
-              <p class="link-warning">Link repair requires reconciling any external changes first. Automatic repair is not implemented yet.</p>
+              <p class="link-warning">A broken link may be a replaced file. Back up its contents and repair after reconciling.</p>
+              <div class="link-operations">
+                <button disabled={busy} onclick={() => void importExternalChanges('detached')}>Import detached .tickets</button>
+                <button disabled={busy} onclick={() => void repairLink()}>Back up and repair link</button>
+              </div>
             {/if}
+            <div class="revision-panel">
+              <div class="section-header">
+                <h3>Revision history</h3>
+                <button onclick={() => void loadRevisions()}>Refresh</button>
+              </div>
+              <div class="revision-list">
+                {#each revisions.slice(0, 12) as revision (revision.revisionId)}
+                  <div class="revision-item">
+                    <span>#{revision.revisionId} · {revision.createdAt}</span>
+                    <button disabled={busy} onclick={() => void restoreRevision(revision.revisionId)}>Restore</button>
+                  </div>
+                {:else}
+                  <p>No revisions available.</p>
+                {/each}
+              </div>
+            </div>
           </div>
         {/if}
         <div class="dialog-actions">
