@@ -46,7 +46,7 @@ jobs:
             .map(([p, v]) => [p, v.version])
           if (bad.length) throw Error('Unpatched modern minimatch copies: ' + JSON.stringify(bad))
           const modern = Object.entries(lock.packages).filter(
-            ([path, p]) => path.endsWith('/minimatch') && /^11\\./.test(p.version)
+            ([path, p]) => path.endsWith('/minimatch') && p.version.startsWith('11.')
           )
           if (!modern.length || modern.some(([, p]) => p.version !== '11.0.9')) {
             throw Error('Missing patched minimatch 11.0.9 dependency')
