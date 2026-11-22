@@ -176,7 +176,7 @@ The workflow at [`.github/workflows/release.yml`](.github/workflows/release.yml)
 
 Each runner installs and builds its own native dependencies, including SQLite. All eight packages use unique platform/architecture filenames. GitHub Actions assembles the packages, checks that none are missing, creates `SHA256SUMS.txt`, and attaches everything to the GitHub Release with automatically generated release notes.
 
-**Signing:** Both NSIS and MSI builds are currently **unsigned** and macOS builds are **not notarized**. Windows SmartScreen and macOS Gatekeeper may warn or block normal installation. Configure signing and Apple notarization before distributing to general users.
+**Signing:** Both NSIS and MSI builds are currently **unsigned** and macOS builds are **not notarized**. Windows SmartScreen and macOS Gatekeeper may warn or block normal installation. 
 
 The repository commits `package-lock.json`. All CI workflows install the pinned dependency tree with `npm ci --no-audit --no-fund` on their native operating system. When dependencies change, regenerate and commit the lockfile with `npm install` before pushing. The ordinary CI workflow does not test packaged apps, and the Windows GUI screenshot workflow remains manual.
 
