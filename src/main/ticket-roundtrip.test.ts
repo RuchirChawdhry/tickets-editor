@@ -9,7 +9,7 @@ import { getProjectDocument, listTickets, registerProject, replaceProjectDocumen
 import { editTicketListItem, editTicketScalar, readTicketField } from '../shared/ticket-fields'
 import { collectTicketLocations } from '../shared/ticket-source'
 import { locateNode, replaceNode } from '../shared/document-mutations'
-import type { SourceFormat, TicketObject } from '../shared/contracts'
+import type { TicketObject } from '../shared/contracts'
 
 const dirs: string[] = []
 const handles: WorkspaceDatabase[] = []
