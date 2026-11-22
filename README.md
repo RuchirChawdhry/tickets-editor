@@ -35,6 +35,27 @@ The current implementation includes SQLite-backed project registration and ticke
 
 See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
 
+## Formatting conventions
+
+Prettier is the sole formatter. The settings in `.prettierrc.json` are authoritative for future changes:
+
+| Setting | Value |
+| --- | --- |
+| Indentation | 2 spaces |
+| Line width | 100 characters |
+| JS/TS quotes | Single |
+| Semicolons | Required |
+| Trailing commas | All supported locations |
+| Arrow-function parentheses | Always |
+| Svelte component block order | Script → Markup → Style (`svelte:options` metadata comes first when present) |
+| Svelte attribute shorthand | Allowed |
+| Line endings | LF |
+| Script/style indentation in Svelte | No extra indentation |
+
+`prettier-plugin-svelte` enforces Svelte block order via `svelteSortOrder: "options-scripts-markup-styles"`, shorthand via `svelteAllowShorthand: true`, and no extra script/style indentation via `svelteIndentScriptAndStyle: false`.
+
+Run `npm run format` before submitting changes and `npm run format:check` to verify formatting. The `format:check` script exists; it is not yet a mandatory CI gate because existing source files have not undergone a repository-wide reformat. ESLint and Oxlint remain code-quality checks, not competing formatters.
+
 ## Code quality
 
 The repository uses **ESLint + typescript-eslint + eslint-plugin-svelte** for complete JavaScript, TypeScript and Svelte linting, **svelte-check** plus TypeScript for type checking, and **Prettier + prettier-plugin-svelte** for formatting. Oxlint is an optional fast first pass for JS/TS files; Svelte templates stay under ESLint because Oxlint does not fully implement Svelte-specific template rules.
