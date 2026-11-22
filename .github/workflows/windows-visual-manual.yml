@@ -34,6 +34,12 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Install WinApp CLI for native HWND capture
+        uses: microsoft/setup-WinAppCli@v0.3
+
+      - name: Verify Windows capture tool
+        run: winapp --version
+
       - name: Build Electron app
         run: npm run build
 
