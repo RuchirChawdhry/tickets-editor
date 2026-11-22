@@ -13,6 +13,7 @@ Edit common fields in a form. Use the JSON editor to change any field, including
 - **Import and export:** Import JSON or JSONL. Copy or save compact JSON, formatted JSON, or JSONL.
 - **Revision history:** Restore an earlier document. Compare revisions in a read-only, side-by-side JSON view.
 - **MCP access:** Let coding agents read and change tickets through the local MCP server.
+- **Customizable title bar:** Pin frequently used commands and change their order.
 
 ## Run the application
 
@@ -64,6 +65,17 @@ and press **Enter** to run it. Press **Esc** to close the palette.
 
 Commands share their actions with the title bar and ticket controls. Unavailable actions
 remain visible but cannot run. Use **Ctrl+K** or **Cmd+K** to focus ticket search.
+
+### Customize title-bar commands
+
+Select the **+** after the title-bar command icons to open the customization panel.
+Search for a command, then select **Pin** or **Unpin**. Move a pinned command with
+the left and right controls, or drag its icon along the title bar. Select
+**Restore defaults** to return to the original five commands.
+
+The application saves these preferences locally. They apply to all registered projects
+and remain in place when you restart the application. Unavailable commands stay visible
+but cannot run.
 
 ### Edit multiple tickets
 

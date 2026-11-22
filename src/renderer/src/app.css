@@ -194,3 +194,148 @@ button.primary{background:#356a9f;color:white;border-color:#4b88c6}button.danger
   color: #9eb0c5;
   font-size: 11px;
 }
+
+
+/* Pinned commands retain the 42px Windows title bar and 140px caption space. */
+.titlebar { position: relative; z-index: 5; }
+.title-actions {
+  align-items: stretch;
+  min-width: 0;
+  max-width: min(440px, 43vw);
+}
+.title-pins {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-app-region: no-drag;
+}
+.title-pins::-webkit-scrollbar { display: none; }
+.title-pin-slot {
+  display: flex;
+  align-items: stretch;
+  flex: 0 0 32px;
+  -webkit-app-region: no-drag;
+}
+.title-pin-slot.drop-target { box-shadow: inset 3px 0 0 #86acd5; }
+.title-pinned-action { width: 100%; white-space: nowrap; }
+.titlebar-customize-trigger {
+  flex: 0 0 32px;
+  border-left: 1px solid #353b44;
+  color: #9bc8f1;
+}
+.titlebar-customizer {
+  position: absolute;
+  top: 44px;
+  right: 140px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  width: min(455px, calc(100vw - 25px));
+  max-height: min(72vh, 570px);
+  overflow: hidden;
+  background: #272f38;
+  color: #e9ecf0;
+  border: 1px solid #576677;
+  border-radius: 6px;
+  box-shadow: 0 20px 55px #000a;
+  -webkit-app-region: no-drag;
+  user-select: text;
+}
+.titlebar-customizer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px;
+  border-bottom: 1px solid #414c59;
+}
+.titlebar-customizer-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.titlebar-customizer-header strong { font-size: 13px; }
+.titlebar-customizer-header small { font-size: 11px; color: #9eafc0; }
+.titlebar-customize-close {
+  background: transparent;
+  color: #b9c8d8;
+  border: 0;
+  padding: 5px 9px;
+  font-size: 19px;
+}
+.titlebar-customize-search {
+  margin: 10px 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.titlebar-customize-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 50px;
+  overflow-y: auto;
+  padding: 0 8px 10px;
+}
+.titlebar-customize-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 4px;
+}
+.titlebar-customize-item:hover { background: #35404c; }
+.titlebar-customize-symbol {
+  width: 26px;
+  flex: 0 0 26px;
+  color: #b5cbea;
+  text-align: center;
+  font-size: 18px;
+}
+.titlebar-customize-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+.titlebar-customize-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.titlebar-customize-text small {
+  color: #9baec0;
+  font-size: 10px;
+  line-height: 1.4;
+}
+.titlebar-customize-actions { display: flex; gap: 3px; }
+.titlebar-customize-actions button, .titlebar-pin-toggle,
+.titlebar-customizer-footer button {
+  padding: 5px 7px;
+  background: #374351;
+  color: #d6e4f3;
+  border: 1px solid #506176;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.titlebar-pin-toggle { min-width: 43px; }
+.titlebar-customize-empty {
+  padding: 18px 10px;
+  color: #a7b5c6;
+  font-size: 12px;
+}
+.titlebar-customizer-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid #414c59;
+  font-size: 10px;
+  color: #a8b8ca;
+}

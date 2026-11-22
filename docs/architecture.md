@@ -71,8 +71,15 @@ Esc closes the palette. Disabled actions remain visible. Ctrl/Cmd+Shift+P opens 
 and Ctrl/Cmd+K focuses ticket search. Commands use the existing ticket service and confirmation
 dialogs; the palette does not bypass project or editing checks.
 
-Dynamic per-project navigation, customizable keybindings, and context menus remain separate
-future enhancements.
+Title-bar pins share the same command IDs, availability rules, and handlers. The default
+five pins retain the previous search, palette, save, import, and new-ticket actions.
+The customization panel can pin or unpin registered static commands, change their order,
+restore defaults, and reorder icons by drag-and-drop. The renderer stores the ordered
+command IDs in its local Electron profile; it does not modify project tickets or SQLite.
+Unknown IDs and duplicate settings are discarded when reading preferences. Dynamic
+project-switch commands remain in the tabs and command palette, not in the pin list.
+
+Customizable keybindings and additional context menus remain future enhancements.
 
 ## Platform coverage
 
