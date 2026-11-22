@@ -45,12 +45,11 @@ jobs:
             .filter(([p, v]) => p.endsWith('/minimatch') && /^([7-9]|10)\./.test(v.version))
             .map(([p, v]) => [p, v.version])
           if (bad.length) throw Error('Unpatched modern minimatch copies: ' + JSON.stringify(bad))
-          for (const name of ['node_modules/minimatch','node_modules/@electron/universal/node_modules/minimatch']) {
-            const version = lock.packages[name]?.version
-            // npm deduplication can relocate the second copy.
-            if (name === 'node_modules/minimatch' && version !== '11.0.9') {
-              throw Error('Expected root minimatch 11.0.9, found ' + version)
-            }
+          const modern = Object.entries(lock.packages).filter(
+            ([path, p]) => path.endsWith('/minimatch') && /^11\\./.test(p.version)
+          )
+          if (!modern.length || modern.some(([, p]) => p.version !== '11.0.9')) {
+            throw Error('Missing patched minimatch 11.0.9 dependency')
           }
           console.log('Resolved minimatch copies:',
             Object.entries(lock.packages)
