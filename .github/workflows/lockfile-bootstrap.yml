@@ -1,0 +1,53 @@
+name: Bootstrap npm lockfile (one-shot)
+
+# Temporary workflow: npm must resolve real package integrity metadata.
+# It is removed once package-lock.json has been committed.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    name: Generate and commit package-lock.json
+    if: github.repository == 'RuchirChawdhry/tickets-editor'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Generate the actual npm dependency lockfile
+        shell: bash
+        run: |
+          if [[ -e package-lock.json ]]; then
+            echo 'Lockfile already present; no bootstrap necessary.'
+            exit 0
+          fi
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node - <<'NODE'
+          const pkg = require('./package.json')
+          const lock = require('./package-lock.json')
+          if (lock.lockfileVersion !== 3 || lock.name !== pkg.name || lock.version !== pkg.version) {
+            throw new Error('Generated lockfile metadata mismatch')
+          }
+          if (!Object.keys(lock.packages).length || Object.keys(lock.packages).length < 100) {
+            throw new Error('Generated lockfile does not contain full dependency metadata')
+          }
+          NODE
+      - name: Commit the lockfile to main
+        shell: bash
+        run: |
+          if [[ ! -f package-lock.json ]] || git ls-files --error-unmatch package-lock.json >/dev/null 2>&1; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add package-lock.json
+          git commit -m 'build: commit npm dependency lockfile'
+          git push origin HEAD:main
