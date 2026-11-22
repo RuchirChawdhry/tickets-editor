@@ -1,0 +1,636 @@
+{
+  "schema_version": 1,
+  "project": {
+    "name": "DLL Viewer — nested project",
+    "platform": "windows",
+    "description": "Synthetic tickets for reviewing nested JSON import, long ticket text and mixed field data.",
+    "milestones": [
+      {
+        "name": "Discovery and ingestion",
+        "tickets": [
+          {
+            "id": "dll-001",
+            "task": "Build the filesystem capability-to-Win32 API map",
+            "deps": [],
+            "work": [
+              "Implement build the filesystem capability-to-win32 api map.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of build the filesystem capability-to-win32 api map.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "search"
+            ]
+          },
+          {
+            "id": "dll-002",
+            "task": "Discover DLL exports without loading the library",
+            "deps": [
+              "dll-001"
+            ],
+            "work": [
+              "Implement discover dll exports without loading the library.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of discover dll exports without loading the library.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "sqlite"
+            ]
+          },
+          {
+            "id": "dll-003",
+            "task": "Read forwarder strings and classify forwarded exports",
+            "deps": [
+              "dll-002"
+            ],
+            "work": [
+              "Implement read forwarder strings and classify forwarded exports.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of read forwarder strings and classify forwarded exports.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "medium",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "mcp"
+            ]
+          },
+          {
+            "id": "dll-004",
+            "task": "Implement Everything es.exe search as an optional fast path",
+            "deps": [
+              "dll-003"
+            ],
+            "work": [
+              "Implement implement everything es.exe search as an optional fast path.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of implement everything es.exe search as an optional fast path.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "low",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "ui"
+            ]
+          },
+          {
+            "id": "dll-005",
+            "task": "Support a portable recursive filesystem scan fallback",
+            "deps": [
+              "dll-004"
+            ],
+            "work": [
+              "Implement support a portable recursive filesystem scan fallback.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of support a portable recursive filesystem scan fallback.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "search"
+            ]
+          },
+          {
+            "id": "dll-006",
+            "task": "Index scan results and symbols into SQLite",
+            "deps": [
+              "dll-005"
+            ],
+            "work": [
+              "Implement index scan results and symbols into sqlite.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of index scan results and symbols into sqlite.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "sqlite"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Data and tooling",
+        "tickets": [
+          {
+            "id": "dll-007",
+            "task": "Add project-scoped ticket identity and revisions",
+            "deps": [
+              "dll-006"
+            ],
+            "work": [
+              "Implement add project-scoped ticket identity and revisions.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of add project-scoped ticket identity and revisions.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "medium",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "mcp"
+            ]
+          },
+          {
+            "id": "dll-008",
+            "task": "Create an MCP tool for searching indexed DLL metadata",
+            "deps": [
+              "dll-007"
+            ],
+            "work": [
+              "Implement create an mcp tool for searching indexed dll metadata.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of create an mcp tool for searching indexed dll metadata.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "low",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "ui"
+            ]
+          },
+          {
+            "id": "dll-009",
+            "task": "Add a read-only detail view with language-aware code examples",
+            "deps": [
+              "dll-008"
+            ],
+            "work": [
+              "Implement add a read-only detail view with language-aware code examples.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of add a read-only detail view with language-aware code examples.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "search"
+            ]
+          },
+          {
+            "id": "dll-010",
+            "task": "Support keyboard-first results navigation",
+            "deps": [
+              "dll-009"
+            ],
+            "work": [
+              "Implement support keyboard-first results navigation.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of support keyboard-first results navigation.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "sqlite"
+            ]
+          },
+          {
+            "id": "dll-011",
+            "task": "Expose filesystem error diagnostics in the status bar",
+            "deps": [
+              "dll-010"
+            ],
+            "work": [
+              "Implement expose filesystem error diagnostics in the status bar.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of expose filesystem error diagnostics in the status bar.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "medium",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "mcp"
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Verification and UI",
+        "tickets": [
+          {
+            "id": "dll-012",
+            "task": "Add a command to export matching DLL metadata",
+            "deps": [
+              "dll-011"
+            ],
+            "work": [
+              "Implement add a command to export matching dll metadata.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of add a command to export matching dll metadata.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "low",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "ui"
+            ]
+          },
+          {
+            "id": "dll-013",
+            "task": "Verify 64-bit and 32-bit PE export handling",
+            "deps": [
+              "dll-012"
+            ],
+            "work": [
+              "Implement verify 64-bit and 32-bit pe export handling.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of verify 64-bit and 32-bit pe export handling.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "search"
+            ]
+          },
+          {
+            "id": "dll-014",
+            "task": "Render long paths without overflowing the navigator",
+            "deps": [
+              "dll-013"
+            ],
+            "work": [
+              "Implement render long paths without overflowing the navigator.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of render long paths without overflowing the navigator.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "high",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "sqlite"
+            ]
+          },
+          {
+            "id": "dll-015",
+            "task": "Validate JSON project import/export round-trips",
+            "deps": [
+              "dll-014"
+            ],
+            "work": [
+              "Implement validate json project import/export round-trips.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of validate json project import/export round-trips.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "medium",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "winapp ui screenshot",
+                "es.exe *.dll"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": false
+              }
+            },
+            "categories": [
+              "windows-api",
+              "mcp"
+            ]
+          },
+          {
+            "id": "dll-016",
+            "task": "Capture populated editor panes using Windows Graphics Capture",
+            "deps": [
+              "dll-015"
+            ],
+            "work": [
+              "Implement capture populated editor panes using windows graphics capture.",
+              "Use native Windows APIs where available; do not reimplement OS-provided capabilities.",
+              "Record the native API or CLI involved, with an executable validation procedure."
+            ],
+            "tests": [
+              "Check the behavior of capture populated editor panes using windows graphics capture.",
+              "Verify outputs are stable across two consecutive runs."
+            ],
+            "success_criteria": [
+              "Tests pass on Windows 11.",
+              "UI stays responsive with a populated ticket list."
+            ],
+            "details": {
+              "priority": "low",
+              "platform": "win32",
+              "owner": "DLL Viewer QA",
+              "commands": [
+                "dumpbin /exports",
+                "Get-Item"
+              ],
+              "checks": {
+                "keyboard": true,
+                "darkTheme": true,
+                "revisionAware": true
+              }
+            },
+            "categories": [
+              "windows-api",
+              "ui"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "metadata": {
+    "fixture": true,
+    "source": "TicketsEditor Windows visual review",
+    "nested_structure": true
+  }
+}
