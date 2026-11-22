@@ -48,6 +48,18 @@ jobs:
           NODE
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
+      - name: Verify unused Squirrel packages are not installed
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const { existsSync } = require('node:fs')
+          for (const name of ['electron-builder-squirrel-windows', 'electron-winstaller']) {
+            if (existsSync('node_modules/' + name)) {
+              throw new Error('Unused peer-only Squirrel dependency installed: ' + name)
+            }
+          }
+          console.log('Squirrel packaging toolchain omitted.')
+          NODE
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
@@ -94,6 +106,18 @@ jobs:
           cache: npm
       - name: Install dependencies on the target OS/CPU
         run: npm ci --no-audit --no-fund
+      - name: Verify unused Squirrel packages are not installed
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const { existsSync } = require('node:fs')
+          for (const name of ['electron-builder-squirrel-windows', 'electron-winstaller']) {
+            if (existsSync('node_modules/' + name)) {
+              throw new Error('Unused peer-only Squirrel dependency installed: ' + name)
+            }
+          }
+          console.log('Squirrel packaging toolchain omitted.')
+          NODE
       - name: Build Electron and MCP bundles
         run: npm run build
       - name: Prepare Windows application icon for WiX/MSI

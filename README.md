@@ -28,6 +28,21 @@ npm run dev
 
 The application uses Electron, Svelte, TypeScript, and SQLite.
 
+### Packaging dependencies
+
+The repository's `.npmrc` sets `omit=peer`. Electron-builder v26 otherwise auto-installs
+`electron-builder-squirrel-windows` and its `electron-winstaller`, `temp`, and
+legacy `rimraf` toolchain through an unused peer dependency. TicketsEditor produces
+**NSIS and MSI**, not Squirrel.Windows installers. Normal `npm ci` and `npm install`
+therefore omit these peer-only packages from `node_modules`.
+
+This setting **does not remove peer-resolution records from `package-lock.json`**:
+npm keeps them to maintain a valid dependency graph. Do not manually delete
+lockfile entries. Regular development, unit tests, and native packaging were
+validated on Ubuntu, Windows, Intel macOS, and Apple Silicon macOS without the
+Squirrel toolchain. Required dependencies (including `dmg-builder`) remain installed.
+
+
 ## Create or open a project
 
 1. Select the **folder-plus icon** after the project tabs.
