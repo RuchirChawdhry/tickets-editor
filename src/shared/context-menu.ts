@@ -11,7 +11,8 @@ export const contextActions = [
   'pin.run', 'pin.unpin', 'pin.moveLeft', 'pin.moveRight', 'pin.customize',
   'list.new', 'list.import', 'list.selectVisible', 'list.clearSelection',
   'json.undo', 'json.redo', 'json.cut', 'json.copy', 'json.paste',
-  'json.selectAll', 'json.format'
+  'json.selectAll', 'json.format',
+  'dependency.copy', 'dependency.remove'
 ] as const
 
 export type ContextAction = (typeof contextActions)[number]
@@ -194,6 +195,13 @@ export function nativeTextContextItems(): ContextMenuEntry[] {
     { kind: 'role', role: 'paste' },
     separator(),
     { kind: 'role', role: 'selectAll' }
+  ]
+}
+
+export function dependencyContextItems(canRemove: boolean): ContextMenuEntry[] {
+  return [
+    item('dependency.copy', 'Copy dependency ID'),
+    item('dependency.remove', 'Remove dependency', canRemove)
   ]
 }
 

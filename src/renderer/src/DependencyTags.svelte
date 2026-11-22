@@ -6,6 +6,7 @@
   export let dependencies: string[]
   export let disabled = false
   export let onChange: (values: string[]) => void
+  export let onContextMenu: (event: MouseEvent, value: string, index: number) => void
 
   let pending = ''
   let inputElement: HTMLInputElement
@@ -45,7 +46,8 @@
 
 <div class="dependency-entry" role="group" aria-label="Dependencies">
   {#each dependencies as dependency, index (index)}
-    <span class="dependency-chip">
+    <span class="dependency-chip" role="group" aria-label={'Dependency ' + dependency}
+      oncontextmenu={(event) => onContextMenu(event, dependency, index)}>
       <span class="dependency-chip-text" title={dependency}>{dependency}</span>
       <button
         type="button"

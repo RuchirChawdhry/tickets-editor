@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  contextTicketSelection, formTextContextItems, jsonContextItems, listContextItems, nativeTextContextItems,
+  contextTicketSelection, dependencyContextItems, formTextContextItems, jsonContextItems, listContextItems, nativeTextContextItems,
   parseContextMenuRequest, pinContextItems, projectContextItems,
   selectionContextItems, ticketContextItems
 } from './context-menu'
@@ -48,6 +48,14 @@ describe('right-click selection contracts', () => {
     expect(pinContextItems('Save ticket', true, 2, 3).find(x =>
       x.kind === 'action' && x.action === 'pin.moveRight'
     )).toMatchObject({ enabled: false })
+  })
+
+  it('copies dependency IDs even when editing is locked and only removes when allowed', () => {
+    expect(dependencyContextItems(false)).toEqual([
+      { kind: 'action', action: 'dependency.copy', label: 'Copy dependency ID', enabled: true },
+      { kind: 'action', action: 'dependency.remove', label: 'Remove dependency', enabled: false }
+    ])
+    expect(dependencyContextItems(true)[1]).toMatchObject({ enabled: true })
   })
 
   it('offers context-appropriate JSON and native editing commands', () => {

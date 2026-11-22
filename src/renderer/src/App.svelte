@@ -23,8 +23,9 @@
     editTicketScalar, readTicketField, removeTicketListItem
   } from '../../shared/ticket-fields'
   import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
+  import { removeDependencyTag } from '../../shared/dependency-tags'
   import {
-    contextTicketSelection, formTextContextItems, jsonContextItems,
+    contextTicketSelection, dependencyContextItems, formTextContextItems, jsonContextItems,
     listContextItems, nativeTextContextItems, pinContextItems,
     projectContextItems, selectionContextItems, ticketContextItems
   } from '../../shared/context-menu'
@@ -991,6 +992,30 @@
     )
   }
 
+  function dependencyContextMenu(event: MouseEvent, dependencyId: string, index: number): void {
+    void popupContextMenu(event, dependencyContextItems(!parseError && !busy), async selected => {
+      if (selected === 'dependency.copy') {
+        await navigator.clipboard.writeText(dependencyId)
+        message = 'Copied dependency ID'
+        error = ''
+      } else if (selected === 'dependency.remove' && !parseError && !busy) {
+        const view = readTicketField(draft, 'deps')
+        if (view.kind === 'list' && view.values[index] === dependencyId) {
+          changeDraft({ ...draft, deps: removeDependencyTag(view.values, index) })
+        }
+      }
+    })
+  }
+
+  function codeContextMenu(event: MouseEvent): void {
+    void popupContextMenu(event, jsonContextItems(
+      jsonEditor?.canUndoEdit() ?? false,
+      jsonEditor?.canRedoEdit() ?? false,
+      jsonEditor?.hasSelectedText() ?? false,
+      !!ticket() && !parseError
+    ), jsonMenuAction)
+  }
+
   function listContextMenu(event: MouseEvent): void {
     void popupContextMenu(event, listContextItems(!!projectUuid, busy, selectedTicketIds.length),
       selected => {
@@ -1032,15 +1057,8 @@
   function onGenericContextMenu(event: MouseEvent): void {
     if (event.defaultPrevented || !(event.target instanceof Element)) return
     const target = event.target
-    if (target.closest('.json-code-shell')) {
-      void popupContextMenu(event, jsonContextItems(
-        jsonEditor?.canUndoEdit() ?? false,
-        jsonEditor?.canRedoEdit() ?? false,
-        jsonEditor?.hasSelectedText() ?? false,
-        !!ticket() && !parseError
-      ), jsonMenuAction)
-      return
-    }
+    // The CodeMirror component intercepts its own context menu in capture phase.
+    if (target.closest('.json-code-shell')) return
 
     const editable = target.closest('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]')
     if (editable) {
@@ -1471,6 +1489,7 @@
                   dependencies={fieldView.kind === 'list' ? fieldView.values : []}
                   disabled={!!parseError}
                   onChange={(values) => changeDraft({ ...draft, deps: values })}
+                  onContextMenu={dependencyContextMenu}
                 />
               {/key}
             {:else if fieldView.kind === 'scalar'}
@@ -1522,7 +1541,13 @@
       </div>
       {#if ticket()}
         {#key editorSession}
-          <JsonCodeEditor initialValue={rawJson} onChange={changeJson} theme={appTheme} bind:this={jsonEditor} />
+          <JsonCodeEditor
+            initialValue={rawJson}
+            onChange={changeJson}
+            onContextMenu={codeContextMenu}
+            theme={appTheme}
+            bind:this={jsonEditor}
+          />
         {/key}
         {#if parseError}<p class="parse-error" role="status">{parseError}</p>{/if}
       {:else}

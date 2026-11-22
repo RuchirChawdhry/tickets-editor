@@ -105,6 +105,25 @@ The application saves these preferences locally. They apply to all registered pr
 and remain in place when you restart the application. Unavailable commands stay visible
 but cannot run.
 
+### Right-click menus
+
+TicketsEditor uses native operating-system context menus:
+
+- **Ticket card:** Open, copy ID or JSON, export, duplicate, move, batch edit, or delete.
+  Right-click preserves a multi-selection when the clicked ticket is in it; otherwise
+  it targets only that ticket. It does not discard unsaved form edits.
+- **Project tab:** Switch, open project settings, copy its path or JSON, import,
+  export, or unregister the project (with confirmation).
+- **Pinned title-bar command:** Run, unpin, move left/right, or customize the title bar.
+- **Dependency chip:** Copy its ID or remove it.
+- **Text fields:** Standard Cut, Copy, Paste, Undo, Redo, and Select All.
+  Form Undo/Redo uses the ticket editor's shared history.
+- **JSON editor:** Undo/Redo using CodeMirror history, Cut, Copy, Paste, Select All,
+  and Format JSON.
+
+Destructive actions require confirmation. Context-menu options are disabled when
+their operations are unavailable. The Windows visual test workflow is still manual.
+
 ### Edit multiple tickets
 
 Use **Ctrl-click** to select individual tickets. Use **Shift-click** to select a range.

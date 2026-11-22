@@ -15,6 +15,7 @@
   export let initialValue: string
   export let theme: AppTheme = 'dark'
   export let onChange: (value: string) => void
+  export let onContextMenu: (event: MouseEvent) => void
 
   let mountNode: HTMLDivElement
   let editor: EditorView | null = null
@@ -177,6 +178,10 @@
   }
 
   onMount(() => {
+    // Capture before CodeMirror's internal DOM handlers, so right-click always
+    // invokes the CodeMirror-specific native menu (with its own undo history).
+    const contextHandler = (event: MouseEvent): void => onContextMenu(event)
+    mountNode.addEventListener('contextmenu', contextHandler, true)
     const syntaxLinter = jsonParseLinter()
     editor = new EditorView({
       parent: mountNode,
@@ -209,6 +214,7 @@
     })
 
     return () => {
+      mountNode.removeEventListener('contextmenu', contextHandler, true)
       editor?.destroy()
       editor = null
     }
