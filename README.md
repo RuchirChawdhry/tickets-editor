@@ -1,94 +1,122 @@
 # TicketsEditor
 
-A cross-platform Electron desktop workspace for reviewing and correcting agent-generated tickets across multiple projects.
+TicketsEditor is a desktop application for reviewing and editing task tickets. It keeps tickets from different projects in one local library.
 
-## Architecture
+Edit common fields in a form. Use the JSON editor to change any field, including nested data.
 
-- **Electron + Svelte + TypeScript**: desktop process, restricted preload bridge, and renderer.
-- **SQLite**: central project and ticket library in the application's user-data directory.
-- **Project file**: each registered project will expose a valid-JSON `.tickets` file at its root.
-- **Link setup**: each project has a canonical AppData `projects/<project-uuid>/tickets.json`; its `<project>/.tickets` can be a **hardlink** (same volume) or **symbolic link** (also supports another drive). Existing files are never replaced silently.
-- **Editor**: ticket navigator, editable humanized pane, readable JSON pane, multi-select and batch operations, nested JSON/JSONL imports, and compact JSON export (default). An integrated Windows title-bar foundation is present; advanced command palette and CodeMirror remain planned.
+## Features
 
-## Development
+- **Project library:** Register multiple projects. Each project has its own tickets and directory.
+- **Two editing views:** Edit a ticket in a form or in the CodeMirror JSON editor. Both views use the same draft.
+- **Validation:** Find missing ticket IDs, tasks, and success criteria. Correct JSON syntax errors in the editor.
+- **Batch editing:** Select multiple tickets to change fields, replace text, duplicate tickets, change order, or delete tickets.
+- **Import and export:** Import JSON or JSONL. Copy or save compact JSON, formatted JSON, or JSONL.
+- **Revision history:** Restore an earlier document. Compare revisions in a read-only, side-by-side JSON view.
+- **MCP access:** Let coding agents read and change tickets through the local MCP server.
 
-Use **Node.js 24** and npm on Windows, Linux, or macOS.
+## Run the application
 
-```powershell
+Install [Node.js](https://nodejs.org/) 24 or later and npm.
+
+```sh
+git clone https://github.com/RuchirChawdhry/tickets-editor.git
+cd tickets-editor
 npm install
 npm run dev
 ```
 
-Useful checks:
+The application uses Electron, Svelte, TypeScript, and SQLite.
 
-```powershell
-npm run typecheck
-npm test
-npm run build
+## Create or open a project
+
+1. Select **+** in the title bar.
+2. Enter a project name.
+3. Select the project's directory.
+4. Select **Register project**.
+5. Select **Import JSON/JSONL** to load existing tickets. Or select **+ New** to create a ticket.
+
+Select a ticket in the left pane. Edit its fields in the center pane or its JSON in the right pane.
+
+Select **Save ticket** to save your changes.
+
+### Ticket format
+
+A ticket can contain these fields:
+
+```json
+{
+  "id": "dll-004",
+  "task": "Index DLL exports",
+  "deps": ["dll-002"],
+  "work": ["Read the export table"],
+  "tests": ["Check export names"],
+  "success_criteria": ["Save all exported names"]
+}
 ```
 
-`npm run dist:win` builds an unsigned Windows installer once packaging is ready.
+TicketsEditor also keeps custom fields and nested objects. Edit these fields in the JSON pane.
 
-## Scope of the initial scaffold
+### Edit multiple tickets
 
-The current implementation includes SQLite-backed project registration and ticket CRUD, JSON/JSONL imports, a humanized/JSON editor, multi-select batch operations, AppData JSON with hardlink/symlink setup, filesystem-change notifications, explicit external import, revision restore and safe link repair with recovery backups. Read-only visual revision diffs are available. CodeMirror, undo/redo and configurable templates are still planned. Automatic three-way merging is intentionally out of scope.
+Use **Ctrl-click** to select individual tickets. Use **Shift-click** to select a range.
 
-See [docs/architecture.md](docs/architecture.md) and [docs/implementation-plan.md](docs/implementation-plan.md).
+Select **Batch edit** to change the selected tickets. You can add or remove list items, replace text, duplicate tickets, change their order, or delete them.
 
-## Formatting conventions
+Choose a format to copy or save the selected tickets. Compact JSON is the default format.
 
-Prettier is the sole formatter. The settings in `.prettierrc.json` are authoritative for future changes:
+### Review revisions
 
-| Setting | Value |
+1. Open **Project settings**.
+2. Find **Revision history**.
+3. Select **Compare** to view changes between two saved versions.
+4. Select **Restore** to return to an earlier version.
+
+The comparison view does not change ticket data.
+
+## Project files
+
+SQLite stores the ticket library in the application's user-data directory.
+
+For each project, TicketsEditor maintains a JSON file at:
+
+```text
+<user-data>/projects/<project-uuid>/tickets.json
+```
+
+You can expose this file as `<project-directory>/.tickets`:
+
+1. Open **Project settings**.
+2. Select **Hardlink** or **Symbolic link**.
+3. Select **Set Up .tickets Link**.
+
+A hardlink requires both files to be on the same volume. A symbolic link can point to another volume.
+
+TicketsEditor updates the JSON file when it saves ticket changes. It checks the link and reports unexpected file changes. The settings page provides file recovery and link repair controls.
+
+## Agent access through MCP
+
+TicketsEditor includes a local Model Context Protocol (MCP) server. Agents can find projects, read tickets, and make ticket changes through this server.
+
+The server uses the same SQLite ticket service as the desktop application. It runs without an application window and communicates through standard input and output.
+
+See [MCP setup and tools](docs/mcp.md) for client configuration and the tool list.
+
+## Development commands
+
+| Command | Purpose |
 | --- | --- |
-| Indentation | 2 spaces |
-| Line width | 100 characters |
-| JS/TS quotes | Single |
-| Semicolons | Required |
-| Trailing commas | All supported locations |
-| Arrow-function parentheses | Always |
-| Svelte component block order | Script → Markup → Style (`svelte:options` metadata comes first when present) |
-| Svelte attribute shorthand | Allowed |
-| Line endings | LF |
-| Script/style indentation in Svelte | No extra indentation |
+| `npm run dev` | Start the desktop application |
+| `npm run typecheck` | Check TypeScript and Svelte types |
+| `npm run lint` | Run ESLint |
+| `npm run lint:fast` | Run Oxlint |
+| `npm test` | Run unit tests |
+| `npm run format` | Format source files with Prettier |
+| `npm run build` | Build the Electron application and MCP server |
 
-`prettier-plugin-svelte` enforces Svelte block order via `svelteSortOrder: "options-scripts-markup-styles"`, shorthand via `svelteAllowShorthand: true`, and no extra script/style indentation via `svelteIndentScriptAndStyle: false`.
+GitHub Actions checks the source and builds on Ubuntu Slim. The workflow does not test a packaged desktop application.
 
-Run `npm run format` before submitting changes and `npm run format:check` to verify formatting. The `format:check` script exists; it is not yet a mandatory CI gate because existing source files have not undergone a repository-wide reformat. ESLint and Oxlint remain code-quality checks, not competing formatters.
+## More information
 
-## Code quality
-
-The repository uses **ESLint + typescript-eslint + eslint-plugin-svelte** for complete JavaScript, TypeScript and Svelte linting, **svelte-check** plus TypeScript for type checking, and **Prettier + prettier-plugin-svelte** for formatting. Oxlint is an optional fast first pass for JS/TS files; Svelte templates stay under ESLint because Oxlint does not fully implement Svelte-specific template rules.
-
-```sh
-npm run lint:fast      # Optional fast first pass (Oxlint)
-npm run lint           # Full ESLint + Svelte linting
-npm run lint:all       # Oxlint first, then ESLint
-npm run typecheck      # TypeScript + svelte-check
-npm run format:check   # Prettier verification
-npm run format         # Apply Prettier formatting
-```
-
-The mandatory Ubuntu Slim CI still runs the full `lint` and `typecheck` scripts. Oxlint is an optional local command and does not replace these checks.
-
-## CI
-
-GitHub Actions uses only `.github/workflows/ci-workflows.yml` on the `ubuntu-slim` runner for headless typechecking, linting, tests and bundle builds. No Windows or macOS CI jobs are configured. Platform packaging is separate from CI verification.
-
-## Multi-ticket workflow
-
-1. Register a project and optionally import an existing JSON or JSONL collection.
-2. In Project Settings, choose **Hardlink** (same volume) or **Symbolic link** to expose the AppData canonical JSON as `<project>/.tickets`.
-3. Ctrl-click individual tickets or Shift-click ranges to select multiple tickets. Use **Select visible** for filtered results.
-4. Open **Batch edit** to append/remove dependencies, work items, tests, or success criteria; find and replace text; duplicate, move or delete the selection.
-5. Copy or save **compact JSON** (default), pretty JSON, or JSONL. Full-project JSON exports retain the original nested document hierarchy.
-
-When an external agent changes `.tickets`, the editor reports its state. The user explicitly chooses whether to import changed JSON, keep SQLite and back up external data, or repair a detached link. Recovery snapshots are kept in `<userData>/recovery/<project-uuid>/`. Detached file repair is never automatic.
-
-## Visual revision diffs
-
-Open **Project Settings → Revision history → Compare**. The read-only comparison viewer opens with the selected revision on the left and the current saved SQLite document on the right. Choose another revision on either side, inspect highlighted additions, deletions and changes, and use Previous/Next to navigate change groups. Unchanged lines are hidden except for nearby context; enable **Show unchanged lines** to view the entire document. Differences are computed on consistently pretty-printed JSON. This view never restores a revision or modifies project files.
-
-## MCP agent integration
-
-TicketsEditor includes a local, headless stdio MCP server using the same SQLite ticket service as the UI. Start it through the Electron executable with `--mcp` (not through an npm log-producing wrapper). Agents can discover, read, create, update, delete, batch-edit, duplicate, and reorder registered tickets; stale writes are rejected. See [MCP setup and tools](docs/mcp.md).
+- [MCP setup and tools](docs/mcp.md)
+- [Architecture](docs/architecture.md)
+- [Implementation plan](docs/implementation-plan.md)
