@@ -26,6 +26,9 @@ jobs:
           node-version: '24'
       - name: Install dependencies
         run: npm install --no-audit --no-fund
+      - name: Oxlint (optional fast pass)
+        run: npm run lint:fast
+        continue-on-error: true
       - name: Typecheck
         run: npm run typecheck
       - name: Lint
