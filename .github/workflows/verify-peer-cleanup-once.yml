@@ -1,0 +1,165 @@
+name: Verify peer-only packaging cleanup (temporary)
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  proof:
+    if: "github.repository == 'RuchirChawdhry/tickets-editor' && github.event.head_commit.message == 'ci: evaluate omit peer cleanup'"
+    name: Native packaging without peer-only dependencies (${{ matrix.platform }} / ${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+            targets: AppImage deb
+          - runner: windows-latest
+            platform: win
+            arch: x64
+            targets: nsis msi
+          - runner: macos-15-intel
+            platform: mac
+            arch: x64
+            targets: dmg zip
+          - runner: macos-15
+            platform: mac
+            arch: arm64
+            targets: dmg zip
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install without peer-only packages
+        run: npm ci --omit=peer --no-audit --no-fund
+      - name: Verify Squirrel-only dependencies absent
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const missing = ['electron-builder-squirrel-windows', 'electron-winstaller', 'temp', 'rimraf']
+          for (const name of missing) {
+            if (fs.existsSync('node_modules/' + name)) throw Error('Unexpected peer-only tool: ' + name)
+          }
+          for (const name of ['electron-builder', 'app-builder-lib', 'dmg-builder', 'better-sqlite3']) {
+            if (!fs.existsSync('node_modules/' + name)) throw Error('Required dependency missing: ' + name)
+          }
+          console.log('Squirrel-only tools absent; supported packaging dependencies present.')
+          NODE
+      - name: Verify application source and SQLite contracts
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          npm run typecheck
+          npm run lint
+          npm rebuild better-sqlite3 --no-audit --no-fund
+          npm test
+      - name: Build application and MCP
+        run: npm run build
+      - name: Prepare Windows application icon for WiX/MSI
+        if: matrix.platform == 'win'
+        shell: bash
+        run: |
+          # electron-builder 26 MSI requires an explicit icon. Without one,
+          # WiX fails with LGHT0094 (missing TicketsEditorIcon.exe).
+          # Build a deterministic multi-resolution ICO using Python stdlib.
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          import zlib
+
+          def pixels(size):
+              for y in range(size):
+                  row = []
+                  for x in range(size):
+                      nx, ny = x / size, y / size
+                      glyph = (
+                          0.21 <= nx < 0.79 and 0.24 <= ny < 0.37
+                      ) or (
+                          0.44 <= nx < 0.56 and 0.30 <= ny < 0.79
+                      )
+                      row.append((255, 255, 255, 255) if glyph else (64, 121, 189, 255))
+                  yield row
+
+          def dib(size):
+              rgba_rows = list(pixels(size))
+              bitmap = b''.join(
+                  bytes((b, g, r, a)) for row in reversed(rgba_rows) for r, g, b, a in row
+              )
+              mask = b'\0' * ((size + 31) // 32 * 4 * size)
+              header = struct.pack(
+                  '<IiiHHIIiiII', 40, size, size * 2, 1, 32, 0, len(bitmap), 0, 0, 0, 0
+              )
+              return header + bitmap + mask
+
+          def chunk(kind, payload):
+              return (
+                  struct.pack('>I', len(payload)) + kind + payload
+                  + struct.pack('>I', zlib.crc32(kind + payload) & 0xffffffff)
+              )
+
+          def png(size):
+              raw = b''.join(b'\0' + b''.join(bytes(pixel) for pixel in row) for row in pixels(size))
+              return (
+                  b'\x89PNG\r\n\x1a\n'
+                  + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
+                  + chunk(b'IDAT', zlib.compress(raw, 9))
+                  + chunk(b'IEND', b'')
+              )
+
+          images = [(16, dib(16)), (32, dib(32)), (48, dib(48)), (256, png(256))]
+          header = struct.pack('<HHH', 0, 1, len(images))
+          offset = len(header) + 16 * len(images)
+          for size, picture in images:
+              header += struct.pack('<BBBBHHII', size % 256, size % 256, 0, 0, 1, 32, len(picture), offset)
+              offset += len(picture)
+          Path('build').mkdir(exist_ok=True)
+          icon = Path('build/release-icon.ico')
+          icon.write_bytes(header + b''.join(picture for _, picture in images))
+          print(f'Wrote {icon} ({icon.stat().st_size:,} bytes)')
+          PY
+
+      - name: Package native installers (no publishing)
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          args=(--${{ matrix.platform }})
+          read -r -a targets <<< "${{ matrix.targets }}"
+          args+=("${targets[@]}" --${{ matrix.arch }} --publish never)
+          if [[ "${{ matrix.platform }}" == "win" ]]; then
+            args+=("-c.win.icon=build/release-icon.ico")
+          fi
+          npx electron-builder "${args[@]}"
+      - name: Assert actual native artifacts exist
+        shell: bash
+        env:
+          TARGET_PLATFORM: ${{ matrix.platform }}
+          TARGET_ARCH: ${{ matrix.arch }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          version = json.loads(Path('package.json').read_text())['version']
+          suffixes = {
+              ('win', 'x64'): ['win-x64.exe', 'win-x64.msi'],
+              ('linux', 'x64'): ['linux-x86_64.AppImage', 'linux-amd64.deb'],
+              ('mac', 'x64'): ['mac-x64.dmg', 'mac-x64.zip'],
+              ('mac', 'arm64'): ['mac-arm64.dmg', 'mac-arm64.zip']
+          }
+          for suffix in suffixes[(os.environ['TARGET_PLATFORM'], os.environ['TARGET_ARCH'])]:
+              path = Path('dist') / f'TicketsEditor-{version}-{suffix}'
+              if not path.is_file() or path.stat().st_size == 0:
+                  raise SystemExit(f'Missing native package: {path}')
+              print(f'{path} ({path.stat().st_size:,} bytes)')
+          PY
