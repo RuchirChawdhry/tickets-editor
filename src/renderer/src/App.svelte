@@ -676,6 +676,7 @@
 
   const handlers: CommandHandlers = {
     'palette.open': openCommandPalette,
+    'titlebar.customize': toggleTitlebarCustomize,
     'project.register': addProjectForm,
     'project.settings': editProjectForm,
     'project.search': focusTicketSearch,
@@ -827,7 +828,7 @@
         aria-haspopup="dialog"
         aria-expanded={titlebarCustomizeOpen}
         title="Pin or reorder title-bar commands"
-        onclick={toggleTitlebarCustomize}
+        onclick={() => executeCommand('titlebar.customize')}
       >+</button>
     </div>
     <div class="caption-reserved"></div>

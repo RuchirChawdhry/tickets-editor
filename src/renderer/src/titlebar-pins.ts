@@ -13,9 +13,10 @@ export const DEFAULT_TITLEBAR_PINS: readonly StaticCommandId[] = [
 ];
 
 const knownIds: ReadonlySet<string> = new Set(commandIds);
+const toolbarOnlyIds: ReadonlySet<string> = new Set(['titlebar.customize']);
 
 export function isPinnableCommandId(id: unknown): id is StaticCommandId {
-  return typeof id === 'string' && knownIds.has(id);
+  return typeof id === 'string' && knownIds.has(id) && !toolbarOnlyIds.has(id);
 }
 
 export function normalizeTitlebarPins(value: unknown): StaticCommandId[] {

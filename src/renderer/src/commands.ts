@@ -10,6 +10,7 @@ export interface CommandContext {
 
 export const commandIds = [
   'palette.open',
+  'titlebar.customize',
   'project.register',
   'project.settings',
   'project.search',
@@ -43,6 +44,7 @@ export type CommandHandlers = Record<StaticCommandId, CommandHandler>;
 /** Compact icons for the integrated title bar and command palette. */
 export const commandIcons: Record<StaticCommandId, string> = {
   'palette.open': '≡',
+  'titlebar.customize': '+',
   'project.register': '⊞',
   'project.settings': '⚙',
   'project.search': '⌕',
@@ -98,6 +100,12 @@ const specs: CommandSpec[] = [
     description: 'Find and run an application command',
     group: 'Workspace', keywords: 'launcher commands quick actions',
     shortcut: 'Mod+Shift+P', available: always,
+  },
+  {
+    id: 'titlebar.customize', title: 'Customize title bar',
+    description: 'Pin, unpin, and reorder title-bar commands',
+    group: 'Workspace', keywords: 'toolbar pinned actions icons favorites configure',
+    available: always,
   },
   {
     id: 'project.register', title: 'Register project',

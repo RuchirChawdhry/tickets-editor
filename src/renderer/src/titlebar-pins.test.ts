@@ -46,6 +46,7 @@ describe('title bar command preferences', () => {
       'ticket.new', 'project.switch:one', 'ticket.new', null, 'unknown', 'ticket.save',
     ])).toEqual(['ticket.new', 'ticket.save']);
     expect(isPinnableCommandId('project.switch:one')).toBe(false);
+    expect(isPinnableCommandId('titlebar.customize')).toBe(false);
     expect(isPinnableCommandId('project.copy')).toBe(true);
   });
 

@@ -68,7 +68,7 @@ remain visible but cannot run. Use **Ctrl+K** or **Cmd+K** to focus ticket searc
 
 ### Customize title-bar commands
 
-Select the **+** after the title-bar command icons to open the customization panel.
+Select the **+** after the title-bar command icons, or run **Customize title bar** from the command palette, to open the customization panel.
 Search for a command, then select **Pin** or **Unpin**. Move a pinned command with
 the left and right controls, or drag its icon along the title bar. Select
 **Restore defaults** to return to the original five commands.

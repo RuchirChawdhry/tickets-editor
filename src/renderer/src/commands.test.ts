@@ -33,6 +33,13 @@ describe('shared command registry', () => {
     expect(setup().commands.map((command) => command.id)).toEqual(commandIds);
   });
 
+  it('offers title-bar customization even without a registered project', () => {
+    const { commands, spy } = setup();
+    expect(commands.find((command) => command.id === 'titlebar.customize')?.enabled).toBe(true);
+    expect(runCommand(commands, 'titlebar.customize')).toBe(true);
+    expect(spy).toHaveBeenCalledOnce();
+  });
+
   it('disables project actions without a registered project', () => {
     const { commands, spy } = setup();
     expect(commands.find((command) => command.id === 'ticket.new')?.enabled).toBe(false);
