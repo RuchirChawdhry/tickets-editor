@@ -19,7 +19,7 @@ Implement register/edit/remove project, absolute project-root validation, ticket
 
 ### 2. Managed .tickets file
 
-Implement same-volume backing file selection, setup button, verified hardlink creation, document serialization, watcher, hash comparison, conflict workflow, repair and recovery.
+Generate each project's canonical `tickets.json` under Windows AppData at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Implement same-volume validation, the `.tickets` hardlink setup button, file-identity verification, document serialization, watcher, hash comparison, conflict workflow, repair and recovery. Do not create managed JSON backing files inside projects.
 
 ### 3. Multi-document UX
 

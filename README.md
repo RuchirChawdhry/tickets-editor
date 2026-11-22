@@ -7,7 +7,7 @@ A Windows-first desktop workspace for reviewing and correcting agent-generated t
 - **Electron + Svelte + TypeScript**: desktop process, restricted preload bridge, and renderer.
 - **SQLite**: central project and ticket library in the application's user-data directory.
 - **Project file**: each registered project will expose a valid-JSON `.tickets` file at its root.
-- **Hardlink setup (planned)**: a managed JSON backing file on the *same volume* as the project will be hardlinked to `<project>/.tickets`. SQLite records cannot be hardlinked.
+- **Hardlink setup (planned)**: canonical JSON files live in Windows AppData, at `<app.getPath('userData')>/projects/<project-uuid>/tickets.json`. Project `<project>/.tickets` is a hardlink to that file on the same volume.
 - **Editor (planned)**: ticket navigator, editable humanized pane, pretty JSON pane, multi-ticket operations, nested JSON / JSONL imports, compact JSON export, and a Borumi-like integrated Windows title bar.
 
 ## Development

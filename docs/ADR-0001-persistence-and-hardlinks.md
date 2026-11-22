@@ -1,57 +1,46 @@
-# ADR 0001 — SQLite library plus project .tickets hardlinks
+# ADR 0001 — SQLite library plus AppData JSON hardlinks
 
-Status: Accepted architectural direction (implementation pending)
+Status: Accepted design; implementation pending.
 
-## Requirements
+## Canonical storage
 
-- A centralized SQLite database must store ticket JSON for all registered projects.
-- The user configures each project's **absolute path**.
-- A dedicated setup button creates a project-root file named **.tickets**, with valid JSON content.
-- The project file should be a hardlink to a managed JSON backing file, avoiding uncoordinated ticket-file copies.
-- Agents can read and edit .tickets without requiring TicketsEditor to run.
-- Nested JSON and JSONL are import formats; .tickets remains valid JSON.
-
-## Physical layout
-
-SQLite is stored under Electron's userData directory. A hardlink targets an inode/file object, **not** a SQLite row. Both link paths must refer to files on the same filesystem volume. Therefore, a managed JSON backing file must be stored on the project's volume.
-
-For a project at D:/Projects/DLLViewer, the default managed backing path can be:
+TicketsEditor stores **one canonical `tickets.json` per project in the Windows AppData user-data directory** obtained from Electron `app.getPath('userData')`. Do not derive this from the application's installation location. SQLite stores all tickets across all projects.
 
 ~~~text
-D:/Projects/DLLViewer/.tickets-editor/data.json   (managed backing file)
-D:/Projects/DLLViewer/.tickets                    (hardlink to data.json)
+%APPDATA%/TicketsEditor/
+  tickets-editor.sqlite
+  projects/
+    <project-uuid-A>/tickets.json
+    <project-uuid-B>/tickets.json
+
+C:/Projects/DLLViewer/.tickets     (hardlink to AppData/projects/<project-uuid-A>/tickets.json)
+C:/Projects/CourseStudio/.tickets  (hardlink to AppData/projects/<project-uuid-B>/tickets.json)
 ~~~
 
-Store the backing path in sync_state so a future user-configurable same-volume store can be supported. The backing directory is an implementation detail, not another competing ticket entry point.
+Illustrative paths only. The project-root `.tickets` and its matching AppData `tickets.json` are two names for the same file, not copies. The project's `.tickets` file must contain valid JSON even when source tickets were imported as JSONL.
 
-## Set Up .tickets action
+## Project registration and hardlink setup
 
-1. Resolve and validate the registered project root.
-2. Inspect an existing .tickets: never overwrite or unlink without an explicit import/reconcile decision.
-3. Choose or create a managed JSON backing file on the same volume.
-4. Atomically write valid JSON to a temporary file and safely install the new backing file.
-5. Create a hardlink at <project-root>/.tickets using the platform hardlink API.
-6. Verify both paths identify the same underlying filesystem file; verify content parses as JSON.
-7. Store the relative/absolute paths, identity and checksum in sync_state.
-8. Report actionable errors for different volumes, unsupported filesystems, permissions, conflict, or occupied target.
+1. Register the absolute full path of the project directory.
+2. Create or locate the canonical `<userData>/projects/<project-uuid>/tickets.json`.
+3. Serialize the accepted document to valid JSON.
+4. If `<project-root>/.tickets` already exists, inspect and reconcile first; never overwrite unreviewed data.
+5. Check that the AppData JSON and project root reside on the **same filesystem volume**; Windows hardlinks cannot cross volumes. Reject cross-volume setup with a clear error; never silently copy, symlink, or create a project-local alternate JSON file.
+6. Create hardlink `<project-root>/.tickets` pointing to the canonical AppData file.
+7. Verify file identity, parse the JSON, and record both paths, checksum, and link state in `sync_state`.
 
-Hardlinks are not symlinks. Do not replace them with a copy and still label the operation successful.
+The UI action is **Set Up .tickets Hardlink**.
 
-## Detecting changed files
+## Synchronization and recovery
 
-Some editors save by writing a new temporary file and renaming it over .tickets. This can break the hardlink even though the path remains. On file watcher events and application resume, compare file identity and content hashes. Show an explicit **Repair hardlink** action when the link is broken.
+- App changes update SQLite and the canonical AppData JSON, with explicit recovery state for failures.
+- External edits to an intact `.tickets` hardlink are edits to the AppData JSON file.
+- Watch changes and recheck hashes/file identity on resume. Compare incoming JSON with the last accepted revision.
+- Some editors save by atomic replacement. Replacing the project's `.tickets` can break the hardlink. Detect the file identity change, preserve external edits, and prompt for safe link repair.
+- App writes to the canonical JSON must preserve the existing file object while a link is active; replacing the canonical path through rename severs the hardlink.
+- Never discard tickets on missing/invalid JSON or silently overwrite newer external data.
+- Accepted revisions must permit recovery.
 
-A write by TicketsEditor to an existing hardlinked file should preserve the file identity when possible. It must not overwrite external changes without checking the last synchronized hash.
+## Explicit constraints
 
-## SQLite synchronization
-
-- The accepted SQLite representation and canonical JSON file are linked by explicit sync_state.
-- App edits: validate, commit SQLite transaction, write JSON, and update sync metadata; recover or flag divergence on partial failures.
-- External edits: parse changed JSON, compare against the common last-synced state, and import, prompt for merge, or flag a conflict.
-- A file conflict does not silently replace a newer edit.
-- Maintain revision snapshots to permit recovery.
-- A missing/invalid file must be reported without deleting tickets from SQLite.
-
-## Out of scope for this ADR
-
-Cloud sync, network shares, hardlinks across volumes, symlink-based fallback, and automatic repair that destroys externally changed content.
+No hardlinks across volumes, no project-local managed backing JSON files, no silent fallback to file copies or symlinks, and no destructive automatic link repair.

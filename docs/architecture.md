@@ -31,7 +31,7 @@ The active SQLite database lives in Electron's userData path as tickets-editor.s
 - documents: project UUID, source format, complete nested JSON root. JSONL imports are represented as arrays internally, retaining source-format metadata.
 - tickets: internal ticket UUID, owning project UUID, agent-defined ticket ID, sequence, RFC 6901 JSON pointer into the document, complete JSON payload.
 - revisions: recorded snapshots of accepted edits for recovery.
-- sync_state: backing file, project .tickets path, content hash, filesystem identity, synchronization state.
+- sync_state: canonical AppData JSON path, project .tickets hardlink path, content hash, filesystem identity, synchronization state.
 
 Tickets can share the same agent-defined ID across different projects. A single project can temporarily have duplicate IDs while the user corrects invalid drafts; duplicates are validation issues, not silent data loss.
 
