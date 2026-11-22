@@ -23,6 +23,12 @@
     editTicketScalar, readTicketField, removeTicketListItem
   } from '../../shared/ticket-fields'
   import type { BatchOperation, BatchArrayField, BatchTextField } from '../../shared/batch-operations'
+  import {
+    contextTicketSelection, formTextContextItems, jsonContextItems,
+    listContextItems, nativeTextContextItems, pinContextItems,
+    projectContextItems, selectionContextItems, ticketContextItems
+  } from '../../shared/context-menu'
+  import type { ContextAction, ContextMenuEntry } from '../../shared/context-menu'
 
   let projects: ProjectRecord[] = []
   let tickets: TicketRecord[] = []
@@ -229,6 +235,7 @@
 
   async function deleteSelection(): Promise<void> {
     if (!projectUuid || !selectedTicketIds.length || busy) return
+    if (dirty && !window.confirm('Discard unsaved ticket edits before deleting selected tickets?')) return
     const count = selectedTicketIds.length
     if (!window.confirm('Delete ' + count + ' selected tickets? This creates a SQLite revision first.')) return
     busy = true
@@ -321,16 +328,20 @@
     if (preservedSelection.length) selectedTicketIds = preservedSelection
   }
 
-  async function selectProject(id: string): Promise<void> {
-    if (id === projectUuid) return
-    if (dirty && !window.confirm('Discard unsaved changes to this ticket?')) return
+  async function selectProject(id: string): Promise<boolean> {
+    if (id === projectUuid) return true
+    if (busy || (dirty && !window.confirm('Discard unsaved changes to this ticket?'))) {
+      return false
+    }
     projectUuid = id
     clearTicket()
     try {
       error = ''
       await reload()
+      return true
     } catch (cause) {
       showError(cause)
+      return false
     }
   }
 
@@ -575,20 +586,33 @@
     }
   }
 
-  async function unregisterProject(): Promise<void> {
-    const current = project()
-    if (!current || !window.confirm('Unregister ' + current.name + '? Project files will not be deleted.')) return
+  async function unregisterProject(targetId = projectUuid): Promise<void> {
+    if (busy) return
+    const target = projects.find(item => item.projectUuid === targetId)
+    if (!target) return
+    if (targetId === projectUuid && dirty &&
+      !window.confirm('Discard unsaved ticket changes before unregistering this project?')) return
+    if (!window.confirm('Unregister ' + target.name + '? Project files will not be deleted.')) return
+    busy = true
     try {
-      await window.ticketsEditor.removeProject(current.projectUuid)
-      settingsOpen = false
-      projectUuid = ''
-      clearTicket()
-      projects = await window.ticketsEditor.listProjects()
-      projectUuid = projects[0]?.projectUuid ?? ''
-      await reload()
+      await window.ticketsEditor.removeProject(targetId)
+      if (targetId === projectUuid) {
+        settingsOpen = false
+        projectUuid = ''
+        clearTicket()
+        projects = await window.ticketsEditor.listProjects()
+        projectUuid = projects[0]?.projectUuid ?? ''
+        await reload()
+      } else {
+        projects = await window.ticketsEditor.listProjects()
+        summary = await window.ticketsEditor.getSummary()
+      }
       message = 'Project unregistered'
+      error = ''
     } catch (cause) {
       showError(cause)
+    } finally {
+      busy = false
     }
   }
 
@@ -818,6 +842,225 @@
     executeCommand(id)
   }
 
+
+  /**
+   * Native OS menus. Every action is returned through the validated preload
+   * bridge. No right-click action should discard drafts or switch tickets just
+   * because a different item was clicked.
+   */
+  async function popupContextMenu(
+    event: MouseEvent,
+    items: ContextMenuEntry[],
+    action: (selected: ContextAction) => void | Promise<void>
+  ): Promise<void> {
+    event.preventDefault()
+    event.stopPropagation()
+    if (!items.length) return
+    try {
+      const selected = await window.ticketsEditor.showContextMenu({
+        items, x: event.clientX, y: event.clientY
+      })
+      if (selected) await action(selected)
+    } catch (cause) {
+      showError(cause)
+    }
+  }
+
+  function ticketContextMenu(event: MouseEvent, target: TicketRecord): void {
+    const selection = contextTicketSelection(target.ticketUuid, selectedTicketIds)
+    selectedTicketIds = selection
+    selectionAnchor = target.ticketUuid
+    const originalProject = projectUuid
+    void popupContextMenu(event, ticketContextItems(selection.length, busy), async selected => {
+      if (originalProject !== projectUuid || busy ||
+        !tickets.some(item => item.ticketUuid === target.ticketUuid)) return
+      // The selection is captured, not inferred from a later active ticket.
+      selectedTicketIds = selection.filter(id => tickets.some(item => item.ticketUuid === id))
+      switch (selected) {
+        case 'ticket.open':
+          openTicket(target)
+          break
+        case 'ticket.copyId':
+          await navigator.clipboard.writeText(target.ticketId)
+          message = 'Copied ticket ID'
+          error = ''
+          break
+        case 'ticket.copy': {
+          const payloads = tickets.filter(item => selectedTicketIds.includes(item.ticketUuid))
+            .map(item => item.payload)
+          const value = payloads.length === 1 ? payloads[0] : payloads
+          const contents = exportFormat === 'jsonl'
+            ? payloads.map(row => JSON.stringify(row)).join('\n')
+            : JSON.stringify(value, null, exportFormat === 'pretty' ? 2 : undefined)
+          await navigator.clipboard.writeText(contents)
+          message = 'Copied ' + payloads.length + ' ticket(s)'
+          error = ''
+          break
+        }
+        case 'ticket.export':
+          await saveExport('selection')
+          break
+        case 'ticket.duplicate':
+          await duplicateSelection()
+          break
+        case 'ticket.moveUp':
+          await moveSelection('up')
+          break
+        case 'ticket.moveDown':
+          await moveSelection('down')
+          break
+        case 'ticket.batchEdit':
+          showBatchEditor = true
+          break
+        case 'ticket.delete':
+          await deleteSelection()
+          break
+      }
+    })
+  }
+
+  function projectContextMenu(event: MouseEvent, target: ProjectRecord): void {
+    void popupContextMenu(
+      event, projectContextItems(target.projectUuid === projectUuid, busy),
+      async selected => {
+        if (busy || !projects.some(item => item.projectUuid === target.projectUuid)) return
+        switch (selected) {
+          case 'project.switch':
+            await selectProject(target.projectUuid)
+            break
+          case 'project.settings':
+            if (await selectProject(target.projectUuid)) openSettings('project')
+            break
+          case 'project.copyPath':
+            await navigator.clipboard.writeText(target.rootPath)
+            message = 'Copied project directory'
+            error = ''
+            break
+          case 'project.copy': {
+            const document = (await window.ticketsEditor.getProjectDocument(target.projectUuid)).document
+            const value = exportFormat === 'jsonl'
+              ? (Array.isArray(document) ? document : [document]).map(row => JSON.stringify(row)).join('\n')
+              : JSON.stringify(document, null, exportFormat === 'pretty' ? 2 : undefined)
+            await navigator.clipboard.writeText(value)
+            message = 'Copied project JSON'
+            error = ''
+            break
+          }
+          case 'project.export': {
+            const path = await window.ticketsEditor.exportTickets(target.projectUuid, 'project', [], exportFormat)
+            if (path) { message = 'Exported project to ' + path; error = '' }
+            break
+          }
+          case 'project.import':
+            if (await selectProject(target.projectUuid)) await importTickets()
+            break
+          case 'project.unregister':
+            await unregisterProject(target.projectUuid)
+            break
+        }
+      }
+    )
+  }
+
+  function pinContextMenu(event: MouseEvent, id: StaticCommandId, title: string,
+    available: boolean): void {
+    const index = pinnedCommandIds.indexOf(id)
+    if (index < 0) return
+    void popupContextMenu(
+      event, pinContextItems(title, available, index, pinnedCommandIds.length),
+      selected => {
+        if (!pinnedCommandIds.includes(id)) return
+        switch (selected) {
+          case 'pin.run':
+            executeCommand(id)
+            break
+          case 'pin.unpin':
+            removeTitlebarPin(id)
+            break
+          case 'pin.moveLeft':
+            moveTitlebarPin(id, -1)
+            break
+          case 'pin.moveRight':
+            moveTitlebarPin(id, 1)
+            break
+          case 'pin.customize':
+            openTitlebarCustomize()
+            break
+        }
+      }
+    )
+  }
+
+  function listContextMenu(event: MouseEvent): void {
+    void popupContextMenu(event, listContextItems(!!projectUuid, busy, selectedTicketIds.length),
+      selected => {
+        switch (selected) {
+          case 'list.new': executeCommand('ticket.new'); break
+          case 'list.import': executeCommand('project.import'); break
+          case 'list.selectVisible': executeCommand('ticket.selectVisible'); break
+          case 'list.clearSelection': executeCommand('ticket.clearSelection'); break
+        }
+      })
+  }
+
+  async function jsonMenuAction(selected: ContextAction): Promise<void> {
+    switch (selected) {
+      case 'json.undo':
+        jsonEditor?.undoEdit()
+        break
+      case 'json.redo':
+        jsonEditor?.redoEdit()
+        break
+      case 'json.cut':
+        await jsonEditor?.copySelectedText(true)
+        break
+      case 'json.copy':
+        await jsonEditor?.copySelectedText()
+        break
+      case 'json.paste':
+        await jsonEditor?.pasteText()
+        break
+      case 'json.selectAll':
+        jsonEditor?.selectAllText()
+        break
+      case 'json.format':
+        executeCommand('ticket.format')
+        break
+    }
+  }
+
+  function onGenericContextMenu(event: MouseEvent): void {
+    if (event.defaultPrevented || !(event.target instanceof Element)) return
+    const target = event.target
+    if (target.closest('.json-code-shell')) {
+      void popupContextMenu(event, jsonContextItems(
+        jsonEditor?.canUndoEdit() ?? false,
+        jsonEditor?.canRedoEdit() ?? false,
+        jsonEditor?.hasSelectedText() ?? false,
+        !!ticket() && !parseError
+      ), jsonMenuAction)
+      return
+    }
+
+    const editable = target.closest('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]')
+    if (editable) {
+      const input = editable instanceof HTMLInputElement ? editable : null
+      const supportsText = !input || /^(text|search|email|url|tel|password|number)$/u.test(input.type)
+      if (!supportsText || (editable instanceof HTMLInputElement && editable.disabled) ||
+        (editable instanceof HTMLTextAreaElement && editable.disabled)) return
+      const form = editable.closest('.human-body')
+      const items = form && jsonEditor
+        ? formTextContextItems(jsonEditor.canUndoEdit(), jsonEditor.canRedoEdit())
+        : nativeTextContextItems()
+      void popupContextMenu(event, items, jsonMenuAction)
+      return
+    }
+
+    if (window.getSelection()?.toString().trim()) {
+      void popupContextMenu(event, selectionContextItems(), () => {})
+    }
+  }
+
   function onHotkey(event: KeyboardEvent): void {
     if (settingsOpen) {
       if (event.key === 'Escape') {
@@ -857,14 +1100,14 @@
 
 </script>
 
-<svelte:window onkeydown={onHotkey} onpointerdown={onTitlebarOutsidePointer} />
+<svelte:window onkeydown={onHotkey} onpointerdown={onTitlebarOutsidePointer} oncontextmenu={onGenericContextMenu} />
 
 <div class="app" class:compact={interfaceDensity === 'compact'}>
   <header class="titlebar">
     <div class="brand" title="TicketsEditor" aria-label="TicketsEditor"><span class="brand-icon" aria-hidden="true">T</span></div>
     <div class="tabs">
       {#each projects as p (p.projectUuid)}
-        <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => executeCommand(`project.switch:${p.projectUuid}`)}>▣ {p.name}</button>
+        <button class:active={p.projectUuid === projectUuid} class="tab" title={p.rootPath} onclick={() => executeCommand(`project.switch:${p.projectUuid}`)} oncontextmenu={(event) => projectContextMenu(event, p)}>▣ {p.name}</button>
       {/each}
       <button class="title-action" title="Register project" aria-label="Register project" onclick={() => executeCommand('project.register')}><CommandIcon id="project.register" /></button>
     </div>
@@ -885,15 +1128,14 @@
             ondragover={(event) => onPinDragOver(event, command.id as StaticCommandId)}
             ondrop={(event) => onPinDrop(event, command.id as StaticCommandId)}
             ondragend={onPinDragEnd}
-            oncontextmenu={(event) => {
-              event.preventDefault()
-              openTitlebarCustomize()
-            }}
+            oncontextmenu={(event) => pinContextMenu(
+              event, command.id as StaticCommandId, command.title, command.enabled
+            )}
           >
             <button
               class="title-action title-pinned-action"
               type="button"
-              title={command.title + ' · Right-click to customize'}
+              title={command.title + ' · Right-click for actions'}
               aria-label={command.title}
               disabled={!command.enabled}
               onclick={() => executeCommand(command.id)}
@@ -1182,9 +1424,9 @@
             <button onclick={() => executeCommand('project.export')}>Save project…</button>
           </div>
         </div>
-        <div class="ticket-list">
+        <div class="ticket-list" oncontextmenu={listContextMenu}>
           {#each visibleTickets() as item (item.ticketUuid)}
-            <button class:active={item.ticketUuid === ticketUuid} class:selected={selectedTicketIds.includes(item.ticketUuid)} class="ticket-card" onclick={event => selectTicket(event, item)}>
+            <button class:active={item.ticketUuid === ticketUuid} class:selected={selectedTicketIds.includes(item.ticketUuid)} class="ticket-card" onclick={event => selectTicket(event, item)} oncontextmenu={event => ticketContextMenu(event, item)}>
               <span class="ticket-card-top">
                 <strong>Ticket {item.number}</strong>
                 <span class:warning={!item.validation.valid} class="status-dot" title={item.validation.valid ? 'Valid' : item.validation.errors.join('; ')}></span>

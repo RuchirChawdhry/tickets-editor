@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  contextTicketSelection, jsonContextItems, listContextItems, nativeTextContextItems,
+  contextTicketSelection, formTextContextItems, jsonContextItems, listContextItems, nativeTextContextItems,
   parseContextMenuRequest, pinContextItems, projectContextItems,
   selectionContextItems, ticketContextItems
 } from './context-menu'
@@ -58,6 +58,12 @@ describe('right-click selection contracts', () => {
       x.kind === 'action' && x.action === 'json.redo'
     )).toMatchObject({ enabled: true })
     expect(nativeTextContextItems().filter(x => x.kind === 'role')).toHaveLength(6)
+    expect(formTextContextItems(true, false).find(x =>
+      x.kind === 'action' && x.action === 'json.undo'
+    )).toMatchObject({ enabled: true })
+    expect(formTextContextItems(true, false).find(x =>
+      x.kind === 'action' && x.action === 'json.redo'
+    )).toMatchObject({ enabled: false })
     expect(selectionContextItems()).toEqual([{ kind: 'role', role: 'copy' }])
     expect(listContextItems(false, false, 0).find(x =>
       x.kind === 'action' && x.action === 'list.new'

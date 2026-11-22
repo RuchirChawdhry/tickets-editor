@@ -163,6 +163,18 @@ export function jsonContextItems(canUndo: boolean, canRedo: boolean,
   ]
 }
 
+export function formTextContextItems(canUndo: boolean, canRedo: boolean): ContextMenuEntry[] {
+  return [
+    item('json.undo', 'Undo ticket edit', canUndo),
+    item('json.redo', 'Redo ticket edit', canRedo),
+    separator(),
+    { kind: 'role', role: 'cut' }, { kind: 'role', role: 'copy' },
+    { kind: 'role', role: 'paste' },
+    separator(),
+    { kind: 'role', role: 'selectAll' }
+  ]
+}
+
 export function nativeTextContextItems(): ContextMenuEntry[] {
   return [
     { kind: 'role', role: 'undo' }, { kind: 'role', role: 'redo' },
