@@ -11,6 +11,7 @@ export interface CommandContext {
 export const commandIds = [
   'palette.open',
   'titlebar.customize',
+  'app.settings',
   'project.register',
   'project.settings',
   'project.search',
@@ -45,6 +46,7 @@ export type CommandHandlers = Record<StaticCommandId, CommandHandler>;
 export const commandIcons: Record<StaticCommandId, string> = {
   'palette.open': '≡',
   'titlebar.customize': '+',
+  'app.settings': '⚙',
   'project.register': '⊞',
   'project.settings': '⚙',
   'project.search': '⌕',
@@ -106,6 +108,12 @@ const specs: CommandSpec[] = [
     description: 'Pin, unpin, and reorder title-bar commands',
     group: 'Workspace', keywords: 'toolbar pinned actions icons favorites configure',
     available: always,
+  },
+  {
+    id: 'app.settings', title: 'Application settings',
+    description: 'Open application and project settings',
+    group: 'Workspace', keywords: 'preferences appearance density configure settings',
+    shortcut: 'Mod+,', available: always,
   },
   {
     id: 'project.register', title: 'Register project',

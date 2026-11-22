@@ -33,6 +33,14 @@ describe('shared command registry', () => {
     expect(setup().commands.map((command) => command.id)).toEqual(commandIds);
   });
 
+  it('opens application settings without a project while project settings stay disabled', () => {
+    const { commands, spy } = setup();
+    expect(commands.find((command) => command.id === 'app.settings')?.enabled).toBe(true);
+    expect(commands.find((command) => command.id === 'project.settings')?.enabled).toBe(false);
+    expect(runCommand(commands, 'app.settings')).toBe(true);
+    expect(spy).toHaveBeenCalledOnce();
+  });
+
   it('offers title-bar customization even without a registered project', () => {
     const { commands, spy } = setup();
     expect(commands.find((command) => command.id === 'titlebar.customize')?.enabled).toBe(true);

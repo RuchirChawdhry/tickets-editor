@@ -78,13 +78,16 @@ async function checkGeometry(page) {
     const bar = document.querySelector('.titlebar').getBoundingClientRect();
     const controls = document.querySelector('.title-actions').getBoundingClientRect();
     const native = document.querySelector('.caption-reserved').getBoundingClientRect();
-    const settingsElement = document.querySelector('.titlebar-customize-trigger');
+    const customize = document.querySelector('.titlebar-customize-trigger').getBoundingClientRect();
+    const settingsElement = document.querySelector('.titlebar-settings-trigger');
     const settings = settingsElement.getBoundingClientRect();
     const borders = getComputedStyle(settingsElement);
     return {
       height: Math.round(bar.height),
       reserved: Math.round(native.width),
       controlsRight: Math.round(controls.right),
+      customizeLeft: Math.round(customize.left),
+      customizeRight: Math.round(customize.right),
       settingsLeft: Math.round(settings.left),
       settingsRight: Math.round(settings.right),
       settingsWidth: Math.round(settings.width),
@@ -100,8 +103,10 @@ async function checkGeometry(page) {
   assert.equal(rect.settingsWidth, 42, 'Settings is an independent 42px slot');
   assert.equal(rect.settingsRight, rect.reservedLeft,
     'Settings must touch the Windows caption-control reservation');
-  assert.equal(rect.controlsRight, rect.settingsLeft,
-    'Pinned commands must end immediately before settings');
+  assert.equal(rect.controlsRight, rect.customizeLeft,
+    'Pinned commands must end before the customize slot');
+  assert.equal(rect.customizeRight, rect.settingsLeft,
+    'Customize must sit immediately before app settings');
   assert.equal(rect.settingsBorderLeft, '1px');
   assert.equal(rect.settingsBorderRight, '1px');
   assert.equal(rect.brandText, 'T', 'Only the brand icon belongs in the title bar');
@@ -159,10 +164,21 @@ test('manual Windows Electron visual review', { timeout: 240000 }, async () => {
     session = await launch(appData);
     let { application, page } = session;
     await checkGeometry(page);
+    assert.equal(await page.locator('.subbar').count(), 0, 'Workspace subbar must be absent');
+    await page.getByRole('button', { name: 'Open settings' }).click();
+    await page.getByRole('tab', { name: 'Application' }).waitFor({ state: 'visible' });
+    assert.equal(await page.getByRole('tab', { name: 'Project' }).isDisabled(), true);
+    await page.locator('#interface-density').selectOption('compact');
+    assert.equal(await page.locator('.app.compact').count(), 1);
+    await page.getByRole('button', { name: 'Close settings' }).click();
     assert.equal(await page.locator('.title-pinned-action').count(), 5);
     await screenshot(application, page, '01-default-titlebar');
 
     await registerSample(page, 'A — JSONL Tickets', project);
+    await page.getByRole('button', { name: 'Open settings' }).click();
+    await page.getByRole('tab', { name: 'Project' }).click();
+    assert.equal(await page.locator('#project-name').inputValue(), 'A — JSONL Tickets');
+    await page.getByRole('button', { name: 'Close settings' }).click();
     await importSample(application, page, 'sample-tickets.jsonl');
     await screenshot(application, page, '02-jsonl-populated');
 

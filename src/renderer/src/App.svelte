@@ -27,6 +27,10 @@
   let projectPath = ''
   let editProjectUuid = ''
   let projectFormOpen = false
+  let settingsOpen = false
+  let settingsTab: 'app' | 'project' = 'app'
+  let interfaceDensity: 'comfortable' | 'compact' = 'comfortable'
+  const DENSITY_STORAGE_KEY = 'tickets-editor.interface-density.v1'
   let commandPaletteOpen = false
   let titlebarCustomizeOpen = false
   let pinnedCommandIds: StaticCommandId[] = [...DEFAULT_TITLEBAR_PINS]
@@ -322,6 +326,14 @@
 
   onMount(() => {
     pinnedCommandIds = loadTitlebarPins(pinStorage)
+    try {
+      const storedDensity = window.localStorage.getItem(DENSITY_STORAGE_KEY)
+      if (storedDensity === 'comfortable' || storedDensity === 'compact') {
+        interfaceDensity = storedDensity
+      }
+    } catch {
+      // Storage failures must not prevent the editor from opening.
+    }
     const onStorageChange = (event: StorageEvent): void => {
       if (event.key === PIN_STORAGE_KEY) pinnedCommandIds = loadTitlebarPins(pinStorage)
     }
@@ -350,14 +362,44 @@
     projectFormOpen = true
   }
 
-  function editProjectForm(): void {
+  function openSettings(tab: 'app' | 'project' = 'app'): void {
+    if (projectFormOpen || diffOpen) return
     const current = project()
-    if (!current) return
-    editProjectUuid = current.projectUuid
-    projectName = current.name
-    projectPath = current.rootPath
-    projectFormOpen = true
-    void loadRevisions()
+    editProjectUuid = current?.projectUuid ?? ''
+    projectName = current?.name ?? ''
+    projectPath = current?.rootPath ?? ''
+    settingsTab = tab === 'project' && current ? 'project' : 'app'
+    titlebarCustomizeOpen = false
+    settingsOpen = true
+    if (current) void loadRevisions()
+    void tick().then(() => {
+      if (settingsOpen) document.getElementById(
+        settingsTab === 'app' ? 'settings-tab-application' : 'settings-tab-project',
+      )?.focus()
+    })
+  }
+
+  function editProjectForm(): void {
+    openSettings('project')
+  }
+
+  function closeSettings(): void {
+    settingsOpen = false
+  }
+
+  function setInterfaceDensity(value: string): void {
+    if (value !== 'comfortable' && value !== 'compact') return
+    interfaceDensity = value
+    try {
+      window.localStorage.setItem(DENSITY_STORAGE_KEY, value)
+    } catch {
+      error = 'Interface density changed, but the preference could not be saved.'
+    }
+  }
+
+  function customizeFromSettings(): void {
+    closeSettings()
+    void tick().then(() => openTitlebarCustomize())
   }
 
   function openRevisionDiff(revisionId: number): void {
@@ -393,9 +435,11 @@
         : await window.ticketsEditor.registerProject(input)
       projectUuid = result.projectUuid
       clearTicket()
+      const wasEditing = !!editProjectUuid
       projectFormOpen = false
+      settingsOpen = false
       await reload()
-      message = 'Project registered in SQLite'
+      message = wasEditing ? 'Project settings saved' : 'Project registered in SQLite'
       error = ''
     } catch (cause) {
       showError(cause)
@@ -508,6 +552,7 @@
     if (!current || !window.confirm('Unregister ' + current.name + '? Project files will not be deleted.')) return
     try {
       await window.ticketsEditor.removeProject(current.projectUuid)
+      settingsOpen = false
       projectUuid = ''
       clearTicket()
       projects = await window.ticketsEditor.listProjects()
@@ -585,7 +630,7 @@
   }
 
   function openCommandPalette(): void {
-    if (projectFormOpen || diffOpen) return
+    if (projectFormOpen || settingsOpen || diffOpen) return
     commandPaletteOpen = true
   }
 
@@ -678,6 +723,7 @@
   const handlers: CommandHandlers = {
     'palette.open': openCommandPalette,
     'titlebar.customize': toggleTitlebarCustomize,
+    'app.settings': () => openSettings('app'),
     'project.register': addProjectForm,
     'project.settings': editProjectForm,
     'project.search': focusTicketSearch,
@@ -745,6 +791,13 @@
   }
 
   function onHotkey(event: KeyboardEvent): void {
+    if (settingsOpen) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        closeSettings()
+      }
+      return
+    }
     if (titlebarCustomizeOpen) {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -778,7 +831,7 @@
 
 <svelte:window onkeydown={onHotkey} onpointerdown={onTitlebarOutsidePointer} />
 
-<div class="app">
+<div class="app" class:compact={interfaceDensity === 'compact'}>
   <header class="titlebar">
     <div class="brand" title="TicketsEditor" aria-label="TicketsEditor"><span class="brand-icon" aria-hidden="true">T</span></div>
     <div class="tabs">
@@ -832,6 +885,15 @@
       title="Pin or reorder title-bar commands"
       onclick={() => executeCommand('titlebar.customize')}
     ><CommandIcon id="titlebar.customize" /></button>
+    <button
+      class="title-action titlebar-settings-trigger"
+      type="button"
+      title="Settings"
+      aria-label="Open settings"
+      aria-haspopup="dialog"
+      aria-expanded={settingsOpen}
+      onclick={() => executeCommand('app.settings')}
+    ><CommandIcon id="app.settings" /></button>
     <div class="caption-reserved"></div>
     {#if titlebarCustomizeOpen}
       <TitlebarCustomize
@@ -849,38 +911,98 @@
     {/if}
   </header>
 
-  <div class="subbar">
-    <strong>{project()?.name ?? 'Workspace'}</strong>
-    <span class="path-label">{project()?.rootPath ?? 'Register a project to begin'}</span>
-    <span class="grow"></span>
-    {#if linkStatus}
-      <span class:link-error={linkStatus.health === 'broken' || linkStatus.health === 'changed'} class="link-health" title={linkStatus.details}>
-        .tickets: {linkStatus.health}{linkStatus.mode ? ' (' + linkStatus.mode + ')' : ''}
-      </span>
-    {/if}
-    {#if linkStatus?.health === 'changed'}
-      <button onclick={() => void importExternalChanges()}>Import external changes</button>
-    {/if}
-    {#if linkStatus?.health === 'conflict'}
-      <button onclick={() => void recoverFromSqlite()}>Resolve from SQLite</button>
-    {/if}
-    <button disabled={!projectUuid} onclick={() => executeCommand('project.settings')}>Project settings</button>
-    <button disabled={!projectUuid} onclick={() => void unregisterProject()}>Unregister</button>
-  </div>
-
-  {#if projectFormOpen}
+  {#if projectFormOpen || settingsOpen}
     <div class="dialog-shade">
-      <dialog class="project-dialog" open aria-label="Configure project">
-        <h2>{editProjectUuid ? 'Edit project' : 'Register project'}</h2>
-        <p>Choose the full path to an existing project directory.</p>
-        <label for="project-name">Project name</label>
-        <input id="project-name" bind:value={projectName} placeholder="DLL Viewer" />
-        <label for="project-path">Absolute project directory</label>
-        <div class="path-input">
-          <input id="project-path" bind:value={projectPath} placeholder="C:\Projects\DLLViewer" />
-          <button onclick={() => void pickDirectory()}>Browse…</button>
-        </div>
-        {#if editProjectUuid && linkStatus}
+      <dialog class="project-dialog" class:settings-dialog={settingsOpen} open aria-label={settingsOpen ? 'Settings' : 'Register project'}>
+        {#if settingsOpen}
+          <div class="settings-header">
+            <div>
+              <h2>Settings</h2>
+              <p>Application preferences and project management</p>
+            </div>
+            <button class="settings-close" type="button" aria-label="Close settings" onclick={closeSettings}>×</button>
+          </div>
+          <div class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button
+              id="settings-tab-application"
+              type="button"
+              role="tab"
+              aria-controls="settings-tab-panel"
+              aria-selected={settingsTab === 'app'}
+              class:active={settingsTab === 'app'}
+              onclick={() => { settingsTab = 'app' }}
+            >Application</button>
+            <button
+              id="settings-tab-project"
+              type="button"
+              role="tab"
+              aria-controls="settings-tab-panel"
+              aria-selected={settingsTab === 'project'}
+              class:active={settingsTab === 'project'}
+              disabled={!projectUuid}
+              onclick={() => { settingsTab = 'project' }}
+            >Project</button>
+          </div>
+        {:else}
+          <h2>Register project</h2>
+          <p>Choose the full path to an existing project directory.</p>
+        {/if}
+
+        {#if settingsOpen && settingsTab === 'app'}
+          <div class="settings-content" id="settings-tab-panel" role="tabpanel" aria-labelledby="settings-tab-application">
+            <section class="settings-section">
+              <h3>Appearance</h3>
+              <label for="interface-density">Interface density</label>
+              <select
+                id="interface-density"
+                value={interfaceDensity}
+                onchange={(event) => setInterfaceDensity((event.currentTarget as HTMLSelectElement).value)}
+              >
+                <option value="comfortable">Comfortable</option>
+                <option value="compact">Compact</option>
+              </select>
+              <p class="settings-description">Adjust spacing in the ticket list and editor without changing your data.</p>
+            </section>
+            <section class="settings-section">
+              <h3>Title bar</h3>
+              <p class="settings-description">{pinnedCommandIds.length} pinned commands. Configure the shortcuts shown next to the Windows controls.</p>
+              <div class="settings-button-row">
+                <button type="button" onclick={customizeFromSettings}>Customize pinned commands</button>
+                <button type="button" onclick={resetTitlebarPins}>Restore defaults</button>
+              </div>
+            </section>
+            <section class="settings-section">
+              <h3>About</h3>
+              <p class="settings-description">TicketsEditor v{version || '0.1.0'} · Local SQLite workspace</p>
+            </section>
+          </div>
+          <div class="dialog-actions settings-footer">
+            <button type="button" class="primary" onclick={closeSettings}>Done</button>
+          </div>
+        {:else}
+          <div
+            class="settings-content"
+            class:registration-content={!settingsOpen}
+            id={settingsOpen ? 'settings-tab-panel' : undefined}
+            role={settingsOpen ? 'tabpanel' : undefined}
+            aria-labelledby={settingsOpen ? 'settings-tab-project' : undefined}
+          >
+            {#if settingsOpen}
+              <div class="settings-project-intro">
+                <h3>{project()?.name ?? 'Project'}</h3>
+                <p>Configure this project's directory, linked .tickets file, and revision history.</p>
+              </div>
+            {/if}
+            <div class="settings-fields">
+              <label for="project-name">Project name</label>
+              <input id="project-name" bind:value={projectName} placeholder="DLL Viewer" />
+              <label for="project-path">Absolute project directory</label>
+              <div class="path-input">
+                <input id="project-path" bind:value={projectPath} placeholder="C:\Projects\DLLViewer" />
+                <button onclick={() => void pickDirectory()}>Browse…</button>
+              </div>
+            </div>
+        {#if settingsOpen && linkStatus}
           <div class="link-panel">
             <h3>Project .tickets link</h3>
             <p>{linkStatus.details}</p>
@@ -929,12 +1051,18 @@
             </div>
           </div>
         {/if}
-        <div class="dialog-actions">
-          <button onclick={() => { projectFormOpen = false }}>Cancel</button>
-          <button class="primary" disabled={busy || !projectName.trim() || !projectPath.trim()} onclick={() => void saveProject()}>
-            {editProjectUuid ? 'Save changes' : 'Register project'}
-          </button>
-        </div>
+          </div>
+          <div class="dialog-actions" class:settings-footer={settingsOpen}>
+            {#if settingsOpen}
+              <button type="button" class="danger" disabled={busy} onclick={() => void unregisterProject()}>Unregister project</button>
+              <span class="grow"></span>
+            {/if}
+            <button type="button" onclick={() => { projectFormOpen = false; settingsOpen = false }}>Cancel</button>
+            <button type="button" class="primary" disabled={busy || !projectName.trim() || !projectPath.trim()} onclick={() => void saveProject()}>
+              {settingsOpen ? 'Save changes' : 'Register project'}
+            </button>
+          </div>
+        {/if}
       </dialog>
     </div>
   {/if}
@@ -1116,6 +1244,15 @@
   <footer class="statusbar">
     <span class="status-ready">● SQLite workspace</span>
     <span>{summary.ticketCount} tickets · {summary.projectCount} projects</span>
+    {#if projectUuid && linkStatus}
+      <button
+        class="status-link"
+        class:link-error={linkStatus.health === 'broken' || linkStatus.health === 'changed' || linkStatus.health === 'conflict'}
+        type="button"
+        title={linkStatus.details + ' · Open project settings'}
+        onclick={() => openSettings('project')}
+      >.tickets: {linkStatus.health}</button>
+    {/if}
     {#if dirty}<span class="unsaved">● Unsaved</span>{/if}
     {#if error}<span class="error" title={error}>{error}</span>{/if}
     {#if message}<span class="success">{message}</span>{/if}

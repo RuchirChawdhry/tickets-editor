@@ -13,7 +13,7 @@ export const DEFAULT_TITLEBAR_PINS: readonly StaticCommandId[] = [
 ];
 
 const knownIds: ReadonlySet<string> = new Set(commandIds);
-const toolbarOnlyIds: ReadonlySet<string> = new Set(['titlebar.customize']);
+const toolbarOnlyIds: ReadonlySet<string> = new Set(['titlebar.customize', 'app.settings']);
 
 export function isPinnableCommandId(id: unknown): id is StaticCommandId {
   return typeof id === 'string' && knownIds.has(id) && !toolbarOnlyIds.has(id);

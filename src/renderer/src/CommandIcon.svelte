@@ -18,6 +18,12 @@
     <path d="M12 2l6 6h-6V2M18 8v4" />
     <path d="M15 18h7M18.5 14.5v7" />
   </svg>
+{:else if id === 'app.settings' || id === 'project.settings'}
+  <svg class="command-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M10 2h4l.6 2.5 2.1.9 2.2-1.3 2.8 2.8-1.3 2.2.9 2.1L24 12l-2.7 1-.9 2.1 1.3 2.2-2.8 2.8-2.2-1.3-2.1.9L14 22h-4l-.6-2.3-2.1-.9-2.2 1.3-2.8-2.8 1.3-2.2-.9-2.1L0 12l2.7-1 .9-2.1-1.3-2.2 2.8-2.8 2.2 1.3 2.1-.9z" transform="translate(2 2) scale(.83)" />
+  </svg>
 {:else if id === 'titlebar.customize'}
   <svg class="command-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
