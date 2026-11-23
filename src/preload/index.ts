@@ -9,8 +9,7 @@ import type {
 const bridge: TicketsEditorBridge = {
   getVersion: () => ipcRenderer.invoke('app:version') as Promise<string>,
   setTheme: (theme) => ipcRenderer.invoke('app:set-theme', theme) as Promise<void>,
-  showContextMenu: (request) =>
-    ipcRenderer.invoke('app:context-menu', request) as ReturnType<TicketsEditorBridge['showContextMenu']>,
+  performEditRole: (role) => ipcRenderer.invoke('app:edit-role', role) as Promise<void>,
   getSummary: () => ipcRenderer.invoke('workspace:summary') as Promise<WorkspaceSummary>,
   listProjects: () => ipcRenderer.invoke('projects:list') as Promise<ProjectRecord[]>,
   chooseProjectDirectory: () => ipcRenderer.invoke('projects:choose-directory') as Promise<string | null>,

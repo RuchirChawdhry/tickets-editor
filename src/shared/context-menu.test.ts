@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   contextTicketSelection, dependencyContextItems, formTextContextItems, jsonContextItems, listContextItems, nativeTextContextItems,
-  parseContextMenuRequest, pinContextItems, projectContextItems,
+  parseContextEditRole, parseContextMenuRequest, pinContextItems, projectContextItems,
   selectionContextItems, ticketContextItems
 } from './context-menu'
 
@@ -106,5 +106,18 @@ describe('native context-menu IPC validation', () => {
       null
     ]
     for (const input of invalid) expect(() => parseContextMenuRequest(input)).toThrow()
+  })
+})
+
+describe('allowlisted in-page editing bridge', () => {
+  it('accepts each supported Chromium editing action', () => {
+    for (const role of ['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll']) {
+      expect(parseContextEditRole(role)).toBe(role)
+    }
+  })
+  it('rejects arbitrary methods, malformed values and scripting primitives', () => {
+    for (const role of ['reload', 'executeJavaScript', '__proto__', 'delete', null, {}, 6]) {
+      expect(() => parseContextEditRole(role)).toThrow(TypeError)
+    }
   })
 })

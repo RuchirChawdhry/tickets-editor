@@ -17,8 +17,7 @@ import {
 import type { LinkMode, ProjectInput, TicketObject, TicketExportFormat, RevisionReference } from '../shared/contracts'
 import { loadRevisionSnapshot } from './revision-snapshots'
 import type { BatchOperation } from '../shared/batch-operations'
-import { parseContextMenuRequest } from '../shared/context-menu'
-import type { ContextAction } from '../shared/context-menu'
+import { parseContextEditRole } from '../shared/context-menu'
 import { TicketWorkspace } from './ticket-workspace'
 
 let database: WorkspaceDatabase | undefined
@@ -109,33 +108,12 @@ function registerHandlers(): void {
       })
     }
   })
-  ipcMain.handle('app:context-menu', (event, input: unknown) => {
+  // Editing uses Chromium's built-in webContents commands, not DOM execCommand
+  // (which cannot reliably paste from the clipboard).
+  ipcMain.handle('app:edit-role', (event, input: unknown) => {
     authorized(event)
-    const request = parseContextMenuRequest(input)
-    const window = mainWindow
-    if (!window || window.isDestroyed()) throw new Error('Context-menu window unavailable')
-    return new Promise<ContextAction | null>((resolve, reject) => {
-      let selected: ContextAction | null = null
-      const template: Electron.MenuItemConstructorOptions[] = request.items.map(item => {
-        if (item.kind === 'separator') return { type: 'separator' }
-        if (item.kind === 'role') return { role: item.role, enabled: item.enabled }
-        return {
-          label: item.label,
-          enabled: item.enabled,
-          click: () => { selected = item.action }
-        }
-      })
-      try {
-        Menu.buildFromTemplate(template).popup({
-          window,
-          ...(request.x !== undefined && request.y !== undefined
-            ? { x: request.x, y: request.y } : {}),
-          callback: () => resolve(selected)
-        })
-      } catch (cause) {
-        reject(cause)
-      }
-    })
+    const role = parseContextEditRole(input)
+    event.sender[role]()
   })
   ipcMain.handle('workspace:summary', event => getWorkspaceSummary(authorized(event)))
   ipcMain.handle('projects:list', event => { authorized(event); return ticketService().listProjects() })

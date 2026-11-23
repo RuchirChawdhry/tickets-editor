@@ -32,6 +32,13 @@ export interface ContextMenuRequest {
 const actionNames = new Set<string>(contextActions)
 const editRoles = new Set<string>(['undo', 'redo', 'cut', 'copy', 'paste', 'selectAll'])
 
+export function parseContextEditRole(value: unknown): ContextEditRole {
+  if (typeof value !== 'string' || !editRoles.has(value)) {
+    throw new TypeError('Unknown editing role')
+  }
+  return value as ContextEditRole
+}
+
 function object(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
