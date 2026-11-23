@@ -352,3 +352,28 @@
 }
 :root[data-theme='light'] .revision-diff-empty { color: #637487; }
 :root[data-theme='light'] .revision-diff-error { color: #a02d2d; }
+
+/* Square context menus use the same crisp icon column in light mode. */
+:root[data-theme='light'] .app-context-menu {
+  background: #ffffff;
+  color: #273543;
+  border-color: #9aa9b9;
+  box-shadow: 0 6px 20px #15253630, 0 1px 2px #15253626;
+  border-radius: 0;
+}
+:root[data-theme='light'] .app-context-item { color: #273543; }
+:root[data-theme='light'] .app-context-icon { color: #386d9e; }
+:root[data-theme='light'] .app-context-item:focus,
+:root[data-theme='light'] .app-context-item:hover:not(:disabled) {
+  background: #dcebf8;
+  color: #193e61;
+}
+:root[data-theme='light'] .app-context-item.destructive:not(:disabled) .app-context-icon {
+  color: #b83832;
+}
+:root[data-theme='light'] .app-context-item.destructive:focus:not(:disabled),
+:root[data-theme='light'] .app-context-item.destructive:hover:not(:disabled) {
+  background: #fce2df;
+  color: #8b2825;
+}
+:root[data-theme='light'] .app-context-divider { background: #d8e0e8; }
