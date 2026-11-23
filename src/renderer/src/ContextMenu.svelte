@@ -88,7 +88,9 @@
       top = fitted.top
       positioned = true
       await tick()
-      focusItem(firstContextMenuIndex(items))
+      const first = firstContextMenuIndex(items)
+      if (first < 0) menuRoot.focus({ preventScroll: true })
+      else focusItem(first)
     })()
     return () => window.removeEventListener('scroll', dismissOnScroll, true)
   })

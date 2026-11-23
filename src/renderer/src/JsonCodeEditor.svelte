@@ -179,7 +179,7 @@
 
   onMount(() => {
     // Capture before CodeMirror's internal DOM handlers, so right-click always
-    // invokes the CodeMirror-specific native menu (with its own undo history).
+    // invokes the shared sharp-corner menu (with CodeMirror's own undo history).
     const contextHandler = (event: MouseEvent): void => onContextMenu(event)
     mountNode.addEventListener('contextmenu', contextHandler, true)
     const syntaxLinter = jsonParseLinter()

@@ -37,7 +37,6 @@
     x: number
     y: number
     focusTarget: HTMLElement | null
-    selectedText: string
     resolve: (item: ContextMenuEntry | null) => void
   }
 
@@ -886,12 +885,15 @@
       : document.activeElement instanceof HTMLElement ? document.activeElement : null
     const selectedText = window.getSelection()?.toString() ?? ''
 
+    // Keyboard context-menu invocation (Shift+F10 / Menu key) often reports 0,0.
+    // Anchor it to the focused element rather than the upper-left window edge.
+    const box = target instanceof Element ? target.getBoundingClientRect() : null
+    const keyboardInvoked = event.detail === 0 && event.clientX === 0 && event.clientY === 0
+    const x = keyboardInvoked && box ? Math.round(box.left + 12) : event.clientX
+    const y = keyboardInvoked && box ? Math.round(box.top + 12) : event.clientY
     try {
       const selected = await new Promise<ContextMenuEntry | null>(resolve => {
-        openContextMenu = {
-          items, x: event.clientX, y: event.clientY,
-          focusTarget: focused, selectedText, resolve
-        }
+        openContextMenu = { items, x, y, focusTarget: focused, resolve }
       })
       if (!selected || selected.enabled === false || selected.kind === 'separator') return
       if (selected.kind === 'action') {

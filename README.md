@@ -107,7 +107,10 @@ but cannot run.
 
 ### Right-click menus
 
-TicketsEditor uses native operating-system context menus:
+TicketsEditor uses a **square-cornered, icon-first context menu** with consistent
+dark/light styling. Every action has a descriptive label and a relevant vector icon.
+Keyboard navigation supports Arrow Up/Down, Home/End, Enter, Space, and Escape.
+Menus reposition inside the app window when opened near an edge:
 
 - **Ticket card:** Open, copy ID or JSON, export, duplicate, move, batch edit, or delete.
   Right-click preserves a multi-selection when the clicked ticket is in it; otherwise
@@ -117,7 +120,8 @@ TicketsEditor uses native operating-system context menus:
 - **Pinned title-bar command:** Run, unpin, move left/right, or customize the title bar.
 - **Dependency chip:** Copy its ID or remove it.
 - **Text fields:** Standard Cut, Copy, Paste, Undo, Redo, and Select All.
-  Form Undo/Redo uses the ticket editor's shared history.
+  Chromium executes native editing commands; form Undo/Redo uses the ticket
+  editor's shared CodeMirror history.
 - **JSON editor:** Undo/Redo using CodeMirror history, Cut, Copy, Paste, Select All,
   and Format JSON.
 

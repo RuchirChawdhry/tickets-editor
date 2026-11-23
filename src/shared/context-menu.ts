@@ -1,6 +1,6 @@
 /**
- * Desktop context-menu contracts. A single, allowlisted action vocabulary is
- * shared by the renderer and the main-process native Menu IPC.
+ * Context-menu contracts. The renderer owns square-cornered presentation,
+ * and the main process accepts only allowlisted native editing commands.
  */
 export const contextActions = [
   'ticket.open', 'ticket.copyId', 'ticket.copy', 'ticket.export',
