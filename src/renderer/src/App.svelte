@@ -7,6 +7,7 @@
   import CommandPalette from './CommandPalette.svelte'
   import TitlebarCustomize from './TitlebarCustomize.svelte'
   import CommandIcon from './CommandIcon.svelte'
+  import ContextMenu from './ContextMenu.svelte'
   import {
     DEFAULT_TITLEBAR_PINS, PIN_STORAGE_KEY, loadTitlebarPins, saveTitlebarPins,
     pinCommand, unpinCommand, shiftPinnedCommand, reorderPinnedCommands,
@@ -30,6 +31,15 @@
     projectContextItems, selectionContextItems, ticketContextItems
   } from '../../shared/context-menu'
   import type { ContextAction, ContextMenuEntry } from '../../shared/context-menu'
+
+  interface OpenContextMenu {
+    items: ContextMenuEntry[]
+    x: number
+    y: number
+    focusTarget: HTMLElement | null
+    selectedText: string
+    resolve: (item: ContextMenuEntry | null) => void
+  }
 
   let projects: ProjectRecord[] = []
   let tickets: TicketRecord[] = []
@@ -77,6 +87,7 @@
   let findText = ''
   let replaceText = ''
   let exportFormat: 'compact' | 'pretty' | 'jsonl' = 'compact'
+  let openContextMenu: OpenContextMenu | null = null
 
   function project(): ProjectRecord | undefined {
     return projects.find(item => item.projectUuid === projectUuid)
@@ -845,10 +856,18 @@
 
 
   /**
-   * Native OS menus. Every action is returned through the validated preload
-   * bridge. No right-click action should discard drafts or switch tickets just
-   * because a different item was clicked.
+   * Sharp-corner menus render inside the app, not through Electron's OS popup.
+   * Restore the focused editor before running an editing role. Right-clicking
+   * another ticket never opens it or discards pending changes.
    */
+  function resolveContextMenu(item: ContextMenuEntry | null): void {
+    const previous = openContextMenu
+    if (!previous) return
+    openContextMenu = null
+    if (previous.focusTarget?.isConnected) previous.focusTarget.focus({ preventScroll: true })
+    previous.resolve(item)
+  }
+
   async function popupContextMenu(
     event: MouseEvent,
     items: ContextMenuEntry[],
@@ -856,12 +875,32 @@
   ): Promise<void> {
     event.preventDefault()
     event.stopPropagation()
+    resolveContextMenu(null)
     if (!items.length) return
+
+    const target = event.target
+    const editable = target instanceof Element
+      ? target.closest('input, textarea, [contenteditable="true"], [contenteditable="plaintext-only"]')
+      : null
+    const focused = editable instanceof HTMLElement ? editable
+      : document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const selectedText = window.getSelection()?.toString() ?? ''
+
     try {
-      const selected = await window.ticketsEditor.showContextMenu({
-        items, x: event.clientX, y: event.clientY
+      const selected = await new Promise<ContextMenuEntry | null>(resolve => {
+        openContextMenu = {
+          items, x: event.clientX, y: event.clientY,
+          focusTarget: focused, selectedText, resolve
+        }
       })
-      if (selected) await action(selected)
+      if (!selected || selected.enabled === false || selected.kind === 'separator') return
+      if (selected.kind === 'action') {
+        await action(selected.action)
+      } else if (selected.role === 'copy' && selectedText && !editable) {
+        await navigator.clipboard.writeText(selectedText)
+      } else {
+        await window.ticketsEditor.performEditRole(selected.role)
+      }
     } catch (cause) {
       showError(cause)
     }
@@ -1057,6 +1096,10 @@
   function onGenericContextMenu(event: MouseEvent): void {
     if (event.defaultPrevented || !(event.target instanceof Element)) return
     const target = event.target
+    if (target.closest('.app-context-menu')) {
+      event.preventDefault()
+      return
+    }
     // The CodeMirror component intercepts its own context menu in capture phase.
     if (target.closest('.json-code-shell')) return
 
@@ -1555,6 +1598,16 @@
       {/if}
     </section>
   </main>
+
+  {#if openContextMenu}
+    <ContextMenu
+      items={openContextMenu.items}
+      x={openContextMenu.x}
+      y={openContextMenu.y}
+      onSelect={entry => resolveContextMenu(entry)}
+      onClose={() => resolveContextMenu(null)}
+    />
+  {/if}
 
   {#if commandPaletteOpen}
     <CommandPalette
