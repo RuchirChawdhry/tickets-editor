@@ -895,7 +895,7 @@
       const selected = await new Promise<ContextMenuEntry | null>(resolve => {
         openContextMenu = { items, x, y, focusTarget: focused, resolve }
       })
-      if (!selected || selected.enabled === false || selected.kind === 'separator') return
+      if (!selected || selected.kind === 'separator' || selected.enabled === false) return
       if (selected.kind === 'action') {
         await action(selected.action)
       } else if (selected.role === 'copy' && selectedText && !editable) {
